@@ -7,10 +7,12 @@ export default function Page() {
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+const [designImages, setDesignImages] = useState<string[]>([]);
 const [designImage, setDesignImage] = useState<string | null>(null);
 const [selectedDesign, setSelectedDesign] = useState<number | null>(null);
 const [tryOnImage, setTryOnImage] = useState<string | null>(null);
 const [tryOnLoading, setTryOnLoading] = useState(false);
+const [tryOnError, setTryOnError] = useState("");
   const handleImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -22,7 +24,9 @@ const [tryOnLoading, setTryOnLoading] = useState(false);
         setResult("");
         setSelectedDesign(null);
         setDesignImage(null);
+        setDesignImages([]);
         setTryOnImage(null);
+        setTryOnError("");
 
       };
 
@@ -38,6 +42,7 @@ const [tryOnLoading, setTryOnLoading] = useState(false);
     setDesignImage(null);
     setSelectedDesign(null);
     setTryOnImage(null);
+    setTryOnError("");
 
     try {
       const response = await fetch("/api", {
@@ -57,7 +62,9 @@ const [tryOnLoading, setTryOnLoading] = useState(false);
       }
 
       setResult(data.result);
-      setDesignImage(data.designImage);
+      setDesignImages(data.designImages || []);
+setDesignImage(data.designImages?.[0] || null)
+setSelectedDesign(0);
     } catch (error) {
       setResult("⚠️ AI chưa thể tạo gợi ý lúc này. Vui lòng thử lại sau.");
       console.error(error);
@@ -70,6 +77,7 @@ const tryOnNails = async () => {
 setTryOnLoading(true);
 try{
   setTryOnImage(null);
+  setTryOnError("");
 
   const response = await fetch("/api/try-on", {
     method: "POST",
@@ -89,6 +97,9 @@ if (!response.ok) {
 }
 
 setTryOnImage(data.tryOnImage);
+} catch (error) {
+  console.error(error);
+  setTryOnError("Không thể thử mẫu nail lúc này. Vui lòng thử lại.");
 } finally {
   setTryOnLoading(false);
 }
@@ -197,23 +208,59 @@ setTryOnImage(data.tryOnImage);
         >
           <h2>✨ Gợi ý cho khách</h2>
           <p style={{ whiteSpace: "pre-wrap" }}>{result}</p>
-          {designImage && selectedDesign === null && (
+          {designImages.length > 0 && (
   <div style={{ marginTop: "25px" }}>
-    <h2>💅 3 mẫu Nail phù hợp với bạn</h2>
-    <p>3 mẫu nail được AI thiết kế dựa trên tông da của bạn</p>
-    <img
-      src={designImage}
-      alt="3 mẫu nail design do AI đề xuất"
+    <h2>Chọn mẫu nail bạn thích</h2>
+
+    <div
       style={{
-        width: "100%",
-        maxWidth: "600px",
-        borderRadius: "18px",
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: "15px",
         marginTop: "15px",
       }}
-      />
+    >
+      {designImages.map((img, index) => (
+        <button
+          key={index}
+          type="button"
+          onClick={() => {
+            setSelectedDesign(index);
+            setDesignImage(img);
+            setTryOnImage(null);
+            setTryOnError("");
+          }}
+          style={{
+            padding: "10px",
+            borderRadius: "16px",
+            cursor: "pointer",
+            border:
+              selectedDesign === index
+                ? "3px solid black"
+                : "1px solid #ccc",
+            background: "white",
+          }}
+        >
+          <img
+            src={img}
+            alt={`Mẫu nail ${index + 1}`}
+            style={{
+              width: "100%",
+              borderRadius: "12px",
+            }}
+          />
+
+          <div style={{ marginTop: "8px", fontWeight: "bold" }}>
+            Mẫu {index + 1}
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+)}
       <button
       onClick={tryOnNails}
-      disabled={tryOnLoading}
+      disabled={tryOnLoading || !designImage || !image}
   type="button"
   style={{
     marginTop: "18px",
@@ -240,10 +287,13 @@ setTryOnImage(data.tryOnImage);
     />
   </div>
 )}
+{tryOnError && (
+  <p style={{ marginTop: "15px", color: "red" }}>
+    {tryOnError}
+  </p>
+)}
   </div>
 )}
-        </div>
-      )}
-    </main>
+        </main>
   );
 }   

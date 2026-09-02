@@ -51,34 +51,44 @@ Không dùng từ ngữ quá kỹ thuật.
         },
       ],
     });
-const designImage = await openai.images.generate({
-  model: "gpt-image-2",
-  prompt: `
-Create one professional nail art reference image based exactly on this analysis:
+const designImages = await Promise.all(
+  [1, 2, 3].map(async (designNumber) => {
+    const generated = await openai.images.generate({
+      model: "gpt-image-2",
+      prompt: `
+Create ONE professional nail art reference image.
+
+Use ONLY nail design concept number ${designNumber} from this analysis:
 
 ${response.output_text}
 
 Requirements:
-- Show exactly 3 different nail design concepts in one image.
-- Each concept must match the colors, nail shape, and patterns described in the analysis.
+- Show only ONE nail design concept.
+- Match the colors, nail shape, and patterns from concept ${designNumber}.
 - Realistic salon-quality nails.
-- Clean and beautiful hand poses.
-- Clear separation between the 3 concepts.
-- No text, no labels, no logos.
+- Clean and beautiful hand pose.
+- No text, labels, or logos.
 - Focus on the nails and nail art.
-- Keep the skin tone natural and consistent.
+- Keep the skin tone natural.
 `,
-  size: "1024x1024",
-  quality:"low",
-});
+      size: "1024x1024",
+      quality: "low",
+    });
 
-const imageBase64 = designImage.data?.[0]?.b64_json;
+    const base64 = generated.data?.[0]?.b64_json;
+
+    return base64
+      ? `data:image/png;base64,${base64}`
+      : null;
+  })
+);
+
 return Response.json({
   result: response.output_text,
-  designImage: imageBase64
-    ? `data:image/png;base64,${imageBase64}`
-    : null,
+  designImages,
 });
+
+ 
   } catch (error) {
     console.error(error);
     return Response.json(

@@ -13,11 +13,13 @@ const handBlob = await handResponse.blob();
 
 const designResponse = await fetch(designImage);
 const designBlob = await designResponse.blob();
-const handFile = new File([handBlob], "hand.png", { type: "image/png" });
-const designFile = new File([designBlob], "design.png", { type: "image/png" });
+const handFile = new File([handBlob], "hand.png", { type: handBlob.type || "image/png" });
+const designFile = new File([designBlob], "design.png", { type: designBlob.type || "image/png" });
 const editedImage = await openai.images.edit({
   model: "gpt-image-2",
   image: [handFile, designFile],
+  quality: "low",
+  size: "1024x1024",
   prompt:
     "Apply the nail art design from the reference image onto the fingernails of the hand photo. Keep the original hand, skin tone, fingers, lighting, background, and hand position unchanged. Only change the fingernails. Make the nail design realistic and salon-quality.",
 });

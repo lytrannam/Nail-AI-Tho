@@ -6,8 +6,10 @@ import { supabase } from "../../lib/supabase";
 export default function CustomersPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [search, setSearch] = useState("");
+  const [showRemindersOnly, setShowRemindersOnly] = useState(false);
   const [customers, setCustomers] = useState<
-    { id: string;name: string; phone: string }[]
+    { id: string; name: string; phone: string; last_visit?: string | null }[]
   >([]);
 
 useEffect(() => {
@@ -20,7 +22,7 @@ useEffect(() => {
 
     const { data, error } = await supabase
       .from("customers")
-      .select("id, name, phone")
+      .select("id, name, phone, last_visit")
       .eq("user_id", user.id);
 
     if (!error && data) {
@@ -62,6 +64,35 @@ useEffect(() => {
   setName("");
   setPhone("");
 };
+const filteredCustomers = customers
+  .filter((customer) => {
+    const keyword = search.toLowerCase().trim();
+
+    const matchesSearch =
+  customer.name.toLowerCase().includes(keyword) ||
+  customer.phone.includes(keyword);
+
+const needsReminder =
+  !!customer.last_visit &&
+  Date.now() - new Date(customer.last_visit).getTime() >
+    21 * 24 * 60 * 60 * 1000;
+
+return matchesSearch && (!showRemindersOnly || needsReminder);
+  })
+  .sort((a,b) =>{
+    const timeA = a.last_visit ? new Date(a.last_visit).getTime() : 0;
+    const timeB = b.last_visit ? new Date(b.last_visit).getTime() : 0;
+
+    return timeB - timeA;
+  });
+  const reminderCount = customers.filter((customer) => {
+  if (!customer.last_visit) return false;
+
+  return (
+    Date.now() - new Date(customer.last_visit).getTime() >
+    21 * 24 * 60 * 60 * 1000
+  );
+}).length;
   return (
     <main
       style={{
@@ -122,11 +153,36 @@ useEffect(() => {
 
         <div style={{ marginTop: "30px" }}>
           <h2>Danh sách khách hàng</h2>
+          <p>Tổng số khách: {customers.length}</p>
+          <p
+  onClick={() => setShowRemindersOnly(!showRemindersOnly)}
+  style={{ fontWeight: "bold", cursor: "pointer" }}>
+  🔔 Khách cần nhắc quay lại: {reminderCount}
+  {showRemindersOnly && (
+  <p>
+    Đang lọc: khách cần nhắc quay lại — bấm 🔔 lần nữa để xem tất cả
+  </p>
+)}
+</p>
+          <input
+  type="text"
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  placeholder="Tìm theo tên hoặc số điện thoại..."
+  style={{
+    width: "100%",
+    maxWidth: "400px",
+    padding: "10px",
+    marginBottom: "20px",
+    border: "1px solid #ccc",
+borderRadius: "8px",
+  }}
+/>
 
-          {customers.length === 0 ? (
+          {filteredCustomers.length === 0 ? (
             <p>Chưa có khách hàng.</p>
           ) : (
-            customers.map((customer, index) => (
+            filteredCustomers.map((customer, index) => (
   <div
     key={index}
     style={{
@@ -146,7 +202,31 @@ useEffect(() => {
       <strong>{customer.name}</strong>
     </button>
 
-    <div>{customer.phone || "Chưa có số điện thoại"}</div>
+   <div>
+  {customer.phone ? (
+    <a href={`tel:${customer.phone}`}>{customer.phone}</a>
+  ) : (
+    "Chưa có số điện thoại"
+  )}
+</div>
+{customer.phone && (
+  <a
+    href={`sms:${customer.phone}`}
+    style={{ display: "inline-block", marginTop: "6px" }}
+  >
+    💬 Nhắn tin
+  </a>
+)}
+    <p>
+  Lần ghé gần nhất:{" "}
+  {customer.last_visit &&
+  Date.now() - new Date(customer.last_visit).getTime() > 21 * 24 * 60 * 60 * 1000 && (
+    <p>⚠️ Khách đã hơn 21 ngày chưa quay lại</p>
+  )}
+  {customer.last_visit
+    ? new Date(customer.last_visit).toLocaleDateString("vi-VN")
+    : "Chưa có"}
+</p>
   </div>
 ))
           )}

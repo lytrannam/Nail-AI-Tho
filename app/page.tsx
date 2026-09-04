@@ -1,8 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { supabase } from "../lib/supabase";
 
 export default function Page() {
+  const searchParams = useSearchParams();
+const customerId = searchParams.get("customerId");
   const fileInput = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState("");
@@ -13,6 +17,26 @@ const [selectedDesign, setSelectedDesign] = useState<number | null>(null);
 const [tryOnImage, setTryOnImage] = useState<string | null>(null);
 const [tryOnLoading, setTryOnLoading] = useState(false);
 const [tryOnError, setTryOnError] = useState("");
+const [saveMessage, setSaveMessage] = useState("");
+const saveSelectedDesign = async (index: number, imageUrl: string) => {
+  if (!customerId) return;
+
+  const { error } = await supabase
+    .from("customers")
+    .update({
+      selected_design: `Mẫu ${index + 1}`,
+      selected_design_image: imageUrl,
+    })
+    .eq("id", customerId);
+
+  if (error) {
+    console.error(error);
+    alert("Không thể lưu mẫu nail đã chọn.");
+  }
+  if (!error) {
+  setSaveMessage("Đã lưu mẫu vào hồ sơ khách.");
+}
+};
   const handleImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -113,6 +137,26 @@ setTryOnImage(data.tryOnImage);
         fontFamily: "Arial, sans-serif",
       }}
     >
+      {customerId && (
+  <button
+    type="button"
+    onClick={() => {
+      window.location.href = `/customer-details?id=${customerId}`;
+    }}
+    style={{
+      padding: "10px 16px",
+      marginBottom: "20px",
+      cursor: "pointer",
+    }}
+  >
+    Quay lại hồ sơ khách
+  </button>
+)}
+{saveMessage && (
+  <p style={{ marginBottom: "20px" }}>
+    {saveMessage}
+  </p>
+)}
      <div style={{ marginBottom: "30px" }}>
   <div style={{ fontSize: "42px", marginBottom: "8px" }}>💅</div>
 
@@ -226,6 +270,7 @@ setTryOnImage(data.tryOnImage);
           type="button"
           onClick={() => {
             setSelectedDesign(index);
+            saveSelectedDesign(index, img);
             setDesignImage(img);
             setTryOnImage(null);
             setTryOnError("");

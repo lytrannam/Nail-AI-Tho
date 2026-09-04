@@ -16,6 +16,10 @@ export default function CustomerDetailsPage() {
   } | null>(null);
 
   const [nailHistory, setNailHistory] = useState("");
+  const [newNailHistory, setNewNailHistory] = useState("");
+  const [lastVisit, setLastVisit] = useState<string | null>(null);
+  const [selectedDesign, setSelectedDesign] = useState("");
+  const [selectedDesignImage, setSelectedDesignImage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function CustomerDetailsPage() {
 
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, nail_history")
+       .select("id, name, phone, nail_history, selected_design, selected_design_image, last_visit")
         .eq("id", customerId)
         .single();
 
@@ -45,6 +49,9 @@ export default function CustomerDetailsPage() {
 if (data) {
   setCustomer(data);
   setNailHistory(data.nail_history || "");
+  setSelectedDesign(data.selected_design || "");
+  setSelectedDesignImage(data.selected_design_image || null);
+  setLastVisit(data.last_visit || null);
 }
     };
 
@@ -59,8 +66,11 @@ if (data) {
     const { error } = await supabase
       .from("customers")
       .update({
-        nail_history: nailHistory,
-      })
+  nail_history: newNailHistory
+    ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
+    : nailHistory,
+  last_visit: new Date().toISOString(),
+})
       .eq("id", customerId);
 
     setSaving(false);
@@ -71,6 +81,13 @@ if (data) {
     }
 
     alert("Đã lưu lịch sử nail.");
+    const updatedHistory = newNailHistory
+  ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
+  : nailHistory;
+
+setNailHistory(updatedHistory);
+setNewNailHistory("");
+setLastVisit(new Date().toISOString());
   };
 
   return (
@@ -82,13 +99,59 @@ if (data) {
       ) : (
         <div>
           <h2>{customer.name}</h2>
+            {lastVisit && <p>Lần ghé thăm gần nhất: {new Date(lastVisit).toLocaleDateString()}</p>}
           <p>Số điện thoại: {customer.phone || "Chưa có số điện thoại"}</p>
-
+          <div style={{ marginTop: "20px", marginBottom: "20px" }}>
+  <h3>Mẫu nail đã chọn</h3>
+  <p>{selectedDesign || "Chưa có mẫu nail được chọn."}</p>
+  {selectedDesignImage && (
+  <img
+    src={selectedDesignImage}
+    alt="Mẫu nail đã chọn"
+    style={{
+      width: "220px",
+      maxWidth: "100%",
+      marginTop: "12px",
+      borderRadius: "12px",
+    }}
+  />
+)}
+</div>
+<button
+  type="button"
+  onClick={() => {
+window.location.href = `/?customerId=${customerId}`;
+  }}
+  style={{
+    padding: "12px 18px",
+    marginTop: "20px",
+    cursor: "pointer",
+  }}
+>
+  Mở AI chọn mẫu nail
+  <button
+  type="button"
+  onClick={() => {
+    window.location.href = `/appointments?customerId=${customerId}`;
+  }}
+  style={{
+    padding: "12px 18px",
+    marginTop: "10px",
+    cursor: "pointer",
+  }}
+></button>
+  Đặt lịch hẹn
+</button>
           <h3>Lịch sử làm nail</h3>
+          {nailHistory && (
+  <p style={{ whiteSpace: "pre-line" }}>
+    {nailHistory}
+  </p>
+)}
 
           <textarea
-            value={nailHistory}
-            onChange={(e) => setNailHistory(e.target.value)}
+            value={newNailHistory}
+            onChange={(e) => setNewNailHistory(e.target.value)}
             placeholder="Nhập lịch sử làm nail của khách..."
             rows={6}
             style={{

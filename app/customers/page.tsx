@@ -1,29 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function CustomersPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [customers, setCustomers] = useState<
-    { name: string; phone: string }[]
+    { id: string;name: string; phone: string }[]
   >([]);
 
-  const addCustomer = () => {
-    if (!name.trim()) return;
+useEffect(() => {
+  const loadCustomers = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    setCustomers([
-      ...customers,
-      {
-        name: name.trim(),
-        phone: phone.trim(),
-      },
-    ]);
+    if (!user) return;
 
-    setName("");
-    setPhone("");
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id, name, phone")
+      .eq("user_id", user.id);
+
+    if (!error && data) {
+      setCustomers(data);
+    }
   };
 
+  loadCustomers();
+}, []);
+  const addCustomer = async () => {
+  if (!name.trim()) return;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("Bạn cần đăng nhập.");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({
+      name: name.trim(),
+      phone: phone.trim(),
+      user_id: user.id,
+    })
+    .select("id, name, phone")
+    .single();
+
+  if (error) {
+    console.error(error);
+    alert("Không thể lưu khách hàng.");
+    return;
+  }
+
+  setCustomers([...customers, data]);
+  setName("");
+  setPhone("");
+};
   return (
     <main
       style={{
@@ -89,19 +127,28 @@ export default function CustomersPage() {
             <p>Chưa có khách hàng.</p>
           ) : (
             customers.map((customer, index) => (
-              <div
-                key={index}
-                style={{
-                  background: "white",
-                  padding: "15px",
-                  borderRadius: "12px",
-                  marginBottom: "10px",
-                }}
-              >
-                <strong>{customer.name}</strong>
-                <div>{customer.phone || "Chưa có số điện thoại"}</div>
-              </div>
-            ))
+  <div
+    key={index}
+    style={{
+      background: "white",
+      padding: "15px",
+      borderRadius: "12px",
+      marginBottom: "10px",
+    }}
+  >
+    <button
+      type="button"
+    
+      onClick={() => {
+  window.location.href = `/customer-details?id=${customer.id}`;
+}}
+    >
+      <strong>{customer.name}</strong>
+    </button>
+
+    <div>{customer.phone || "Chưa có số điện thoại"}</div>
+  </div>
+))
           )}
         </div>
       </div>

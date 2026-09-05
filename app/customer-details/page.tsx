@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
-export default function CustomerDetailsPage() {
+function CustomerDetailsContent() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
 
@@ -26,33 +26,33 @@ export default function CustomerDetailsPage() {
     const loadCustomer = async () => {
       if (!customerId) return;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  if (!user) {
-    alert("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
-    return;
-  }
+      if (!user) {
+        alert("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+        return;
+      }
 
       const { data, error } = await supabase
         .from("customers")
-       .select("id, name, phone, nail_history, selected_design, selected_design_image, last_visit")
+        .select("id, name, phone, nail_history, selected_design, selected_design_image, last_visit")
         .eq("id", customerId)
         .single();
 
       if (error) {
-  alert("Lỗi tải khách hàng: " + error.message);
-  return;
-}
+        alert("Lỗi tải khách hàng: " + error.message);
+        return;
+      }
 
-if (data) {
-  setCustomer(data);
-  setNailHistory(data.nail_history || "");
-  setSelectedDesign(data.selected_design || "");
-  setSelectedDesignImage(data.selected_design_image || null);
-  setLastVisit(data.last_visit || null);
-}
+      if (data) {
+        setCustomer(data);
+        setNailHistory(data.nail_history || "");
+        setSelectedDesign(data.selected_design || "");
+        setSelectedDesignImage(data.selected_design_image || null);
+        setLastVisit(data.last_visit || null);
+      }
     };
 
     loadCustomer();
@@ -66,11 +66,11 @@ if (data) {
     const { error } = await supabase
       .from("customers")
       .update({
-  nail_history: newNailHistory
-    ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
-    : nailHistory,
-  last_visit: new Date().toISOString(),
-})
+        nail_history: newNailHistory
+          ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
+          : nailHistory,
+        last_visit: new Date().toISOString(),
+      })
       .eq("id", customerId);
 
     setSaving(false);
@@ -82,12 +82,12 @@ if (data) {
 
     alert("Đã lưu lịch sử nail.");
     const updatedHistory = newNailHistory
-  ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
-  : nailHistory;
+      ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
+      : nailHistory;
 
-setNailHistory(updatedHistory);
-setNewNailHistory("");
-setLastVisit(new Date().toISOString());
+    setNailHistory(updatedHistory);
+    setNewNailHistory("");
+    setLastVisit(new Date().toISOString());
   };
 
   return (
@@ -99,55 +99,59 @@ setLastVisit(new Date().toISOString());
       ) : (
         <div>
           <h2>{customer.name}</h2>
-            {lastVisit && <p>Lần ghé thăm gần nhất: {new Date(lastVisit).toLocaleDateString()}</p>}
+          {lastVisit && <p>Lần ghé thăm gần nhất: {new Date(lastVisit).toLocaleDateString()}</p>}
           <p>Số điện thoại: {customer.phone || "Chưa có số điện thoại"}</p>
           <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-  <h3>Mẫu nail đã chọn</h3>
-  <p>{selectedDesign || "Chưa có mẫu nail được chọn."}</p>
-  {selectedDesignImage && (
-  <img
-    src={selectedDesignImage}
-    alt="Mẫu nail đã chọn"
-    style={{
-      width: "220px",
-      maxWidth: "100%",
-      marginTop: "12px",
-      borderRadius: "12px",
-    }}
-  />
-)}
-</div>
-<button
-  type="button"
-  onClick={() => {
-window.location.href = `/?customerId=${customerId}`;
-  }}
-  style={{
-    padding: "12px 18px",
-    marginTop: "20px",
-    cursor: "pointer",
-  }}
->
-  Mở AI chọn mẫu nail
-  <button
-  type="button"
-  onClick={() => {
-    window.location.href = `/appointments?customerId=${customerId}`;
-  }}
-  style={{
-    padding: "12px 18px",
-    marginTop: "10px",
-    cursor: "pointer",
-  }}
-></button>
-  Đặt lịch hẹn
-</button>
+            <h3>Mẫu nail đã chọn</h3>
+            <p>{selectedDesign || "Chưa có mẫu nail được chọn."}</p>
+            {selectedDesignImage && (
+              <img
+                src={selectedDesignImage}
+                alt="Mẫu nail đã chọn"
+                style={{
+                  width: "220px",
+                  maxWidth: "100%",
+                  marginTop: "12px",
+                  borderRadius: "12px",
+                }}
+              />
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `/?customerId=${customerId}`;
+            }}
+            style={{
+              padding: "12px 18px",
+              marginTop: "20px",
+              cursor: "pointer",
+            }}
+          >
+            Mở AI chọn mẫu nail
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `/appointments?customerId=${customerId}`;
+            }}
+            style={{
+              padding: "12px 18px",
+              marginTop: "10px",
+              cursor: "pointer",
+            }}
+          >
+            Đặt lịch hẹn
+          </button>
+
           <h3>Lịch sử làm nail</h3>
           {nailHistory && (
-  <p style={{ whiteSpace: "pre-line" }}>
-    {nailHistory}
-  </p>
-)}
+            <p style={{ whiteSpace: "pre-line" }}>
+              {nailHistory}
+            </p>
+          )}
 
           <textarea
             value={newNailHistory}
@@ -179,5 +183,13 @@ window.location.href = `/?customerId=${customerId}`;
         </div>
       )}
     </main>
+  );
+}
+
+export default function CustomerDetailsPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: "40px 20px" }}>Đang tải...</main>}>
+      <CustomerDetailsContent />
+    </Suspense>
   );
 }

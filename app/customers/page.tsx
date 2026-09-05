@@ -105,6 +105,19 @@ return matchesSearch && (!showRemindersOnly || needsReminder);
       <div style={{ maxWidth: "700px", margin: "0 auto" }}>
         <h1>Khách hàng</h1>
         <p>Lưu thông tin khách và lịch sử làm nail.</p>
+        <button
+  type="button"
+  onClick={() => {
+    window.location.href = "/stats";
+  }}
+  style={{
+    padding: "10px 16px",
+    marginBottom: "10px",
+    cursor: "pointer",
+  }}
+>
+  📊 Xem thống kê
+</button>
 
         <div
           style={{

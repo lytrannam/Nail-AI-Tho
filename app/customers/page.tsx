@@ -9,6 +9,7 @@ export default function CustomersPage() {
   const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
   const [showRemindersOnly, setShowRemindersOnly] = useState(false);
+  const [sendingAll, setSendingAll] = useState(false);
   const [customers, setCustomers] = useState<
     {
       id: string;
@@ -18,7 +19,6 @@ export default function CustomersPage() {
       last_visit?: string | null;
       selected_design_image?: string | null;
       all_design_images?: string[] | null;
-
     }[]
   >([]);
 
@@ -32,7 +32,9 @@ export default function CustomersPage() {
 
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, email, last_visit, selected_design_image, all_design_images")
+        .select(
+          "id, name, phone, email, last_visit, selected_design_image, all_design_images"
+        )
         .eq("user_id", user.id);
 
       if (!error && data) {
@@ -107,6 +109,50 @@ export default function CustomersPage() {
       21 * 24 * 60 * 60 * 1000
     );
   }).length;
+
+  const sendReminderToAll = async () => {
+    const customersToRemind = customers.filter((customer) => {
+      const needsReminder =
+        !!customer.last_visit &&
+        Date.now() - new Date(customer.last_visit).getTime() >
+          21 * 24 * 60 * 60 * 1000;
+      return needsReminder && customer.email;
+    });
+
+    if (customersToRemind.length === 0) {
+      alert("Không có khách nào cần nhắc (hoặc chưa có email).");
+      return;
+    }
+
+    setSendingAll(true);
+    let successCount = 0;
+
+    for (const customer of customersToRemind) {
+      try {
+        const res = await fetch("/api/send-reminder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            toEmail: customer.email,
+            customerName: customer.name,
+            oldDesignImage: customer.selected_design_image,
+            newDesignImages: (customer.all_design_images || []).filter(
+              (img) => img !== customer.selected_design_image
+            ),
+          }),
+        });
+        const data = await res.json();
+        if (!data.error) successCount++;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    setSendingAll(false);
+    alert(
+      `Đã gửi email nhắc cho ${successCount}/${customersToRemind.length} khách.`
+    );
+  };
 
   return (
     <main
@@ -207,6 +253,24 @@ export default function CustomersPage() {
             )}
           </div>
 
+          {reminderCount > 0 && (
+            <button
+              type="button"
+              onClick={sendReminderToAll}
+              disabled={sendingAll}
+              style={{
+                marginTop: "10px",
+                padding: "10px 16px",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              {sendingAll
+                ? "Đang gửi..."
+                : `📧 Gửi email nhắc tất cả (${reminderCount})`}
+            </button>
+          )}
+
           <input
             type="text"
             value={search}
@@ -255,7 +319,7 @@ export default function CustomersPage() {
 
                 {customer.phone && (
                   
-                    <a href={`sms:${customer.phone}`}
+                   <a href={`sms:${customer.phone}`}
                     style={{ display: "inline-block", marginTop: "6px" }}
                   >
                     💬 Nhắn tin
@@ -269,39 +333,42 @@ export default function CustomersPage() {
                     "Chưa có email"
                   )}
                 </div>
+
                 {customer.email && (
-  <button
-    type="button"
-    onClick={async () => {
-      const res = await fetch("/api/send-reminder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          toEmail: customer.email,
-          customerName: customer.name,
-          oldDesignImage: customer.selected_design_image,
-          newDesignImages: (customer.all_design_images || []).filter(
-            (img) => img !== customer.selected_design_image
-          ),
-        }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        alert("Lỗi: " + data.error);
-      } else {
-        alert("Đã gửi email nhắc cho " + customer.name);
-      }
-    }}
-    style={{
-      marginTop: "8px",
-      padding: "8px 14px",
-      cursor: "pointer",
-      display: "block",
-    }}
-  >
-    📧 Gửi email nhắc
-  </button>
-)}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await fetch("/api/send-reminder", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          toEmail: customer.email,
+                          customerName: customer.name,
+                          oldDesignImage: customer.selected_design_image,
+                          newDesignImages: (
+                            customer.all_design_images || []
+                          ).filter(
+                            (img) => img !== customer.selected_design_image
+                          ),
+                        }),
+                      });
+                      const data = await res.json();
+                      if (data.error) {
+                        alert("Lỗi: " + data.error);
+                      } else {
+                        alert("Đã gửi email nhắc cho " + customer.name);
+                      }
+                    }}
+                    style={{
+                      marginTop: "8px",
+                      padding: "8px 14px",
+                      cursor: "pointer",
+                      display: "block",
+                    }}
+                  >
+                    📧 Gửi email nhắc
+                  </button>
+                )}
 
                 <div>
                   Lần ghé gần nhất:{" "}

@@ -120,6 +120,18 @@ function AppointmentsContent() {
       return;
     }
 
+    // Đặt lịch mới = 1 lượt ghé mới → cho phép dùng thử lại từ đầu
+    await supabase
+      .from("customers")
+      .update({
+        all_design_images: null,
+        selected_design_image: null,
+        selected_design: null,
+        tryon_used: false,
+      })
+      .eq("id", Number(customerId));
+      
+
     setAppointments((prev) =>
       [...prev, data].sort(
         (a, b) =>

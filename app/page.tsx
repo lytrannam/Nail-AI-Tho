@@ -3,7 +3,7 @@
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
-import { uploadImage } from "../lib/uploadImage";
+import { translations, Language } from "../lib/translations";
 
 function PageContent() {
   const searchParams = useSearchParams();
@@ -19,36 +19,30 @@ function PageContent() {
   const [tryOnLoading, setTryOnLoading] = useState(false);
   const [tryOnError, setTryOnError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [lang, setLang] = useState<Language>("en");
 
-   const saveSelectedDesign = async (index: number, imageUrl: string) => {
+  const t = translations[lang];
+
+  const saveSelectedDesign = async (index: number, imageUrl: string) => {
     if (!customerId) return;
-
-    setSaveMessage("Đang lưu mẫu...");
-
-    const uploadedUrl = await uploadImage(imageUrl);
-
-    if (!uploadedUrl) {
-      alert("Không thể tải ảnh lên. Vui lòng thử lại.");
-      setSaveMessage("");
-      return;
-    }
 
     const { error } = await supabase
       .from("customers")
       .update({
         selected_design: `Mẫu ${index + 1}`,
-        selected_design_image: uploadedUrl,
+        selected_design_image: imageUrl,
       })
       .eq("id", Number(customerId));
 
     if (error) {
       console.error(error);
       alert("Không thể lưu mẫu nail đã chọn.");
-      setSaveMessage("");
-    } else {
-      setSaveMessage("Đã lưu mẫu vào hồ sơ khách.");
+    }
+    if (!error) {
+      setSaveMessage(t.savedMessage);
     }
   };
+
   const handleImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -100,22 +94,18 @@ function PageContent() {
       setDesignImages(data.designImages || []);
       setDesignImage(data.designImages?.[0] || null);
       setSelectedDesign(0);
-           if (customerId && data.designImages?.length > 0) {
+
+      if (customerId && data.designImages?.length > 0) {
+        const { uploadImage } = await import("../lib/uploadImage");
         const uploadedUrls = await Promise.all(
           data.designImages.map((img: string) => uploadImage(img))
         );
         const validUrls = uploadedUrls.filter((url) => url !== null);
 
-        const { error: updateError } = await supabase
+        await supabase
           .from("customers")
           .update({ all_design_images: validUrls })
           .eq("id", Number(customerId));
-
-        if (updateError) {
-          console.error("Lỗi lưu all_design_images:", updateError.message);
-        } else {
-          console.log("Đã lưu all_design_images thành công!");
-        }
       }
     } catch (error) {
       setResult("⚠️ AI chưa thể tạo gợi ý lúc này. Vui lòng thử lại sau.");
@@ -151,7 +141,7 @@ function PageContent() {
       setTryOnImage(data.tryOnImage);
     } catch (error) {
       console.error(error);
-      setTryOnError("Không thể thử mẫu nail lúc này. Vui lòng thử lại.");
+      setTryOnError(t.tryOnError);
     } finally {
       setTryOnLoading(false);
     }
@@ -166,6 +156,23 @@ function PageContent() {
         fontFamily: "Arial, sans-serif",
       }}
     >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       {customerId && (
         <button
           type="button"
@@ -178,7 +185,7 @@ function PageContent() {
             cursor: "pointer",
           }}
         >
-          Quay lại hồ sơ khách
+          {t.backToProfile}
         </button>
       )}
       {saveMessage && (
@@ -189,12 +196,10 @@ function PageContent() {
       <div style={{ marginBottom: "30px" }}>
         <div style={{ fontSize: "42px", marginBottom: "8px" }}>💅</div>
 
-        <h1 style={{ margin: "0 0 8px" }}>
-          AL NAIL AI
-        </h1>
+        <h1 style={{ margin: "0 0 8px" }}>{t.appTitle}</h1>
 
         <p style={{ fontSize: "18px", margin: "0 0 20px" }}>
-          Trợ lý AI chọn nail dành riêng cho bạn
+          {t.appSubtitle}
         </p>
 
         <div
@@ -207,9 +212,9 @@ function PageContent() {
             lineHeight: "1.6",
           }}
         >
-          📷 Chụp rõ cả bàn tay dưới ánh sáng tự nhiên, không dùng filter và không che móng.
+          {t.instructions}
           <br />
-          ✨ AI sẽ phân tích tông da, gợi ý màu phù hợp và tạo 3 mẫu nail dành cho bạn.
+          {t.aiExplain}
         </div>
       </div>
 
@@ -233,16 +238,16 @@ function PageContent() {
           margin: "10px",
         }}
       >
-        📸 Chụp hoặc chọn ảnh bàn tay
+        {t.chooseOrTakePhoto}
       </button>
 
       {image && (
         <div style={{ marginTop: "30px" }}>
-          <h2>Ảnh bàn tay của khách</h2>
+          <h2>{t.yourHandPhoto}</h2>
 
           <img
             src={image}
-            alt="Ảnh khách hàng"
+            alt={t.yourHandPhoto}
             style={{
               maxWidth: "90%",
               width: "350px",
@@ -264,7 +269,7 @@ function PageContent() {
               marginTop: "20px",
             }}
           >
-            {loading ? "✨ AI đang phân tích & tạo mẫu..." : "✨ Xem gợi ý Nail AI"}
+            {loading ? t.analyzing : t.viewSuggestions}
           </button>
         </div>
       )}
@@ -279,11 +284,14 @@ function PageContent() {
             borderRadius: "18px",
           }}
         >
-          <h2>✨ Gợi ý cho khách</h2>
+          <h2>{t.suggestionsTitle}</h2>
           <p style={{ whiteSpace: "pre-wrap" }}>{result}</p>
           {designImages.length > 0 && (
             <div style={{ marginTop: "25px" }}>
-              <h2>Chọn mẫu nail bạn thích</h2>
+              <h2>{t.chooseDesignTitle}</h2>
+              <p style={{ fontSize: "13px", color: "#888", marginTop: "4px" }}>
+                {t.disclaimerDesign}
+              </p>
 
               <div
                 style={{
@@ -317,7 +325,7 @@ function PageContent() {
                   >
                     <img
                       src={img}
-                      alt={`Mẫu nail ${index + 1}`}
+                      alt={`${t.design} ${index + 1}`}
                       style={{
                         width: "100%",
                         borderRadius: "12px",
@@ -325,7 +333,7 @@ function PageContent() {
                     />
 
                     <div style={{ marginTop: "8px", fontWeight: "bold" }}>
-                      Mẫu {index + 1}
+                      {t.design} {index + 1}
                     </div>
                   </button>
                 ))}
@@ -343,15 +351,15 @@ function PageContent() {
               cursor: "pointer",
             }}
           >
-            {tryOnLoading ? "AI đang thử mẫu lên tay..." : "Thử mẫu lên bàn tay"}
+            {tryOnLoading ? t.tryOnLoading : t.tryOnButton}
           </button>
           {tryOnImage && (
             <div style={{ marginTop: "25px" }}>
-              <h2>Mẫu thử trên bàn tay của bạn</h2>
+              <h2>{t.tryOnResultTitle}</h2>
 
               <img
                 src={tryOnImage}
-                alt="Mẫu nail thử trên bàn tay"
+                alt={t.tryOnResultTitle}
                 style={{
                   width: "100%",
                   maxWidth: "600px",
@@ -374,7 +382,7 @@ function PageContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<main style={{ padding: "40px 20px", textAlign: "center" }}>Đang tải...</main>}>
+    <Suspense fallback={<main style={{ padding: "40px 20px", textAlign: "center" }}>Loading...</main>}>
       <PageContent />
     </Suspense>
   );

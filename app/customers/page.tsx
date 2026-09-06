@@ -6,93 +6,108 @@ import { supabase } from "../../lib/supabase";
 export default function CustomersPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
   const [showRemindersOnly, setShowRemindersOnly] = useState(false);
   const [customers, setCustomers] = useState<
-    { id: string; name: string; phone: string; last_visit?: string | null }[]
+    {
+      id: string;
+      name: string;
+      phone: string;
+      email?: string | null;
+      last_visit?: string | null;
+      selected_design_image?: string | null;
+      all_design_images?: string[] | null;
+
+    }[]
   >([]);
 
-useEffect(() => {
-  const loadCustomers = async () => {
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, phone, email, last_visit, selected_design_image, all_design_images")
+        .eq("user_id", user.id);
+
+      if (!error && data) {
+        setCustomers(data);
+      }
+    };
+
+    loadCustomers();
+  }, []);
+
+  const addCustomer = async () => {
+    if (!name.trim()) return;
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      alert("Bạn cần đăng nhập.");
+      return;
+    }
 
     const { data, error } = await supabase
       .from("customers")
-      .select("id, name, phone, last_visit")
-      .eq("user_id", user.id);
+      .insert({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || null,
+        user_id: user.id,
+      })
+      .select("id, name, phone, email")
+      .single();
 
-    if (!error && data) {
-      setCustomers(data);
+    if (error) {
+      console.error(error);
+      alert("Không thể lưu khách hàng.");
+      return;
     }
+
+    setCustomers([...customers, data]);
+    setName("");
+    setPhone("");
+    setEmail("");
   };
 
-  loadCustomers();
-}, []);
-  const addCustomer = async () => {
-  if (!name.trim()) return;
+  const filteredCustomers = customers
+    .filter((customer) => {
+      const keyword = search.toLowerCase().trim();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      const matchesSearch =
+        customer.name.toLowerCase().includes(keyword) ||
+        (customer.phone ?? "").includes(keyword) ||
+        (customer.email ?? "").toLowerCase().includes(keyword);
 
-  if (!user) {
-    alert("Bạn cần đăng nhập.");
-    return;
-  }
+      const needsReminder =
+        !!customer.last_visit &&
+        Date.now() - new Date(customer.last_visit).getTime() >
+          21 * 24 * 60 * 60 * 1000;
 
-  const { data, error } = await supabase
-    .from("customers")
-    .insert({
-      name: name.trim(),
-      phone: phone.trim(),
-      user_id: user.id,
+      return matchesSearch && (!showRemindersOnly || needsReminder);
     })
-    .select("id, name, phone")
-    .single();
+    .sort((a, b) => {
+      const timeA = a.last_visit ? new Date(a.last_visit).getTime() : 0;
+      const timeB = b.last_visit ? new Date(b.last_visit).getTime() : 0;
+      return timeB - timeA;
+    });
 
-  if (error) {
-    console.error(error);
-    alert("Không thể lưu khách hàng.");
-    return;
-  }
-
-  setCustomers([...customers, data]);
-  setName("");
-  setPhone("");
-};
-const filteredCustomers = customers
-  .filter((customer) => {
-    const keyword = search.toLowerCase().trim();
-
-    const matchesSearch =
-  customer.name.toLowerCase().includes(keyword) ||
-  customer.phone.includes(keyword);
-
-const needsReminder =
-  !!customer.last_visit &&
-  Date.now() - new Date(customer.last_visit).getTime() >
-    21 * 24 * 60 * 60 * 1000;
-
-return matchesSearch && (!showRemindersOnly || needsReminder);
-  })
-  .sort((a,b) =>{
-    const timeA = a.last_visit ? new Date(a.last_visit).getTime() : 0;
-    const timeB = b.last_visit ? new Date(b.last_visit).getTime() : 0;
-
-    return timeB - timeA;
-  });
   const reminderCount = customers.filter((customer) => {
-  if (!customer.last_visit) return false;
+    if (!customer.last_visit) return false;
+    return (
+      Date.now() - new Date(customer.last_visit).getTime() >
+      21 * 24 * 60 * 60 * 1000
+    );
+  }).length;
 
-  return (
-    Date.now() - new Date(customer.last_visit).getTime() >
-    21 * 24 * 60 * 60 * 1000
-  );
-}).length;
   return (
     <main
       style={{
@@ -106,18 +121,18 @@ return matchesSearch && (!showRemindersOnly || needsReminder);
         <h1>Khách hàng</h1>
         <p>Lưu thông tin khách và lịch sử làm nail.</p>
         <button
-  type="button"
-  onClick={() => {
-    window.location.href = "/stats";
-  }}
-  style={{
-    padding: "10px 16px",
-    marginBottom: "10px",
-    cursor: "pointer",
-  }}
->
-  📊 Xem thống kê
-</button>
+          type="button"
+          onClick={() => {
+            window.location.href = "/stats";
+          }}
+          style={{
+            padding: "10px 16px",
+            marginBottom: "10px",
+            cursor: "pointer",
+          }}
+        >
+          📊 Xem thống kê
+        </button>
 
         <div
           style={{
@@ -151,6 +166,18 @@ return matchesSearch && (!showRemindersOnly || needsReminder);
             }}
           />
 
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email (không bắt buộc)"
+            style={{
+              width: "100%",
+              padding: "12px",
+              marginBottom: "12px",
+              boxSizing: "border-box",
+            }}
+          />
+
           <button
             type="button"
             onClick={addCustomer}
@@ -167,81 +194,128 @@ return matchesSearch && (!showRemindersOnly || needsReminder);
         <div style={{ marginTop: "30px" }}>
           <h2>Danh sách khách hàng</h2>
           <p>Tổng số khách: {customers.length}</p>
-          <p
-  onClick={() => setShowRemindersOnly(!showRemindersOnly)}
-  style={{ fontWeight: "bold", cursor: "pointer" }}>
-  🔔 Khách cần nhắc quay lại: {reminderCount}
-  {showRemindersOnly && (
-  <p>
-    Đang lọc: khách cần nhắc quay lại — bấm 🔔 lần nữa để xem tất cả
-  </p>
-)}
-</p>
+
+          <div
+            onClick={() => setShowRemindersOnly(!showRemindersOnly)}
+            style={{ fontWeight: "bold", cursor: "pointer" }}
+          >
+            🔔 Khách cần nhắc quay lại: {reminderCount}
+            {showRemindersOnly && (
+              <div style={{ fontWeight: "normal", fontSize: "0.9em" }}>
+                Đang lọc: khách cần nhắc quay lại — bấm 🔔 lần nữa để xem tất cả
+              </div>
+            )}
+          </div>
+
           <input
-  type="text"
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-  placeholder="Tìm theo tên hoặc số điện thoại..."
-  style={{
-    width: "100%",
-    maxWidth: "400px",
-    padding: "10px",
-    marginBottom: "20px",
-    border: "1px solid #ccc",
-borderRadius: "8px",
-  }}
-/>
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm theo tên, số điện thoại hoặc email..."
+            style={{
+              width: "100%",
+              maxWidth: "400px",
+              padding: "10px",
+              marginTop: "10px",
+              marginBottom: "20px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+            }}
+          />
 
           {filteredCustomers.length === 0 ? (
             <p>Chưa có khách hàng.</p>
           ) : (
-            filteredCustomers.map((customer, index) => (
-  <div
-    key={index}
+            filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                style={{
+                  background: "white",
+                  padding: "15px",
+                  borderRadius: "12px",
+                  marginBottom: "10px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `/customer-details?id=${customer.id}`;
+                  }}
+                >
+                  <strong>{customer.name}</strong>
+                </button>
+
+                <div>
+                  {customer.phone ? (
+                    <a href={`tel:${customer.phone}`}>{customer.phone}</a>
+                  ) : (
+                    "Chưa có số điện thoại"
+                  )}
+                </div>
+
+                {customer.phone && (
+                  
+                    <a href={`sms:${customer.phone}`}
+                    style={{ display: "inline-block", marginTop: "6px" }}
+                  >
+                    💬 Nhắn tin
+                  </a>
+                )}
+
+                <div>
+                  {customer.email ? (
+                    <a href={`mailto:${customer.email}`}>{customer.email}</a>
+                  ) : (
+                    "Chưa có email"
+                  )}
+                </div>
+                {customer.email && (
+  <button
+    type="button"
+    onClick={async () => {
+      const res = await fetch("/api/send-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toEmail: customer.email,
+          customerName: customer.name,
+          oldDesignImage: customer.selected_design_image,
+          newDesignImages: (customer.all_design_images || []).filter(
+            (img) => img !== customer.selected_design_image
+          ),
+        }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert("Lỗi: " + data.error);
+      } else {
+        alert("Đã gửi email nhắc cho " + customer.name);
+      }
+    }}
     style={{
-      background: "white",
-      padding: "15px",
-      borderRadius: "12px",
-      marginBottom: "10px",
+      marginTop: "8px",
+      padding: "8px 14px",
+      cursor: "pointer",
+      display: "block",
     }}
   >
-    <button
-      type="button"
-    
-      onClick={() => {
-  window.location.href = `/customer-details?id=${customer.id}`;
-}}
-    >
-      <strong>{customer.name}</strong>
-    </button>
-
-   <div>
-  {customer.phone ? (
-    <a href={`tel:${customer.phone}`}>{customer.phone}</a>
-  ) : (
-    "Chưa có số điện thoại"
-  )}
-</div>
-{customer.phone && (
-  <a
-    href={`sms:${customer.phone}`}
-    style={{ display: "inline-block", marginTop: "6px" }}
-  >
-    💬 Nhắn tin
-  </a>
+    📧 Gửi email nhắc
+  </button>
 )}
-    <p>
-  Lần ghé gần nhất:{" "}
-  {customer.last_visit &&
-  Date.now() - new Date(customer.last_visit).getTime() > 21 * 24 * 60 * 60 * 1000 && (
-    <p>⚠️ Khách đã hơn 21 ngày chưa quay lại</p>
-  )}
-  {customer.last_visit
-    ? new Date(customer.last_visit).toLocaleDateString("vi-VN")
-    : "Chưa có"}
-</p>
-  </div>
-))
+
+                <div>
+                  Lần ghé gần nhất:{" "}
+                  {customer.last_visit
+                    ? new Date(customer.last_visit).toLocaleDateString("vi-VN")
+                    : "Chưa có"}
+                  {customer.last_visit &&
+                    Date.now() - new Date(customer.last_visit).getTime() >
+                      21 * 24 * 60 * 60 * 1000 && (
+                      <div>⚠️ Khách đã hơn 21 ngày chưa quay lại</div>
+                    )}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

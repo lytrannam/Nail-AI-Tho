@@ -3,6 +3,7 @@
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { uploadImage } from "../lib/uploadImage";
 
 function PageContent() {
   const searchParams = useSearchParams();
@@ -19,26 +20,35 @@ function PageContent() {
   const [tryOnError, setTryOnError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
 
-  const saveSelectedDesign = async (index: number, imageUrl: string) => {
+   const saveSelectedDesign = async (index: number, imageUrl: string) => {
     if (!customerId) return;
+
+    setSaveMessage("Đang lưu mẫu...");
+
+    const uploadedUrl = await uploadImage(imageUrl);
+
+    if (!uploadedUrl) {
+      alert("Không thể tải ảnh lên. Vui lòng thử lại.");
+      setSaveMessage("");
+      return;
+    }
 
     const { error } = await supabase
       .from("customers")
       .update({
         selected_design: `Mẫu ${index + 1}`,
-        selected_design_image: imageUrl,
+        selected_design_image: uploadedUrl,
       })
-      .eq("id", customerId);
+      .eq("id", Number(customerId));
 
     if (error) {
       console.error(error);
       alert("Không thể lưu mẫu nail đã chọn.");
-    }
-    if (!error) {
+      setSaveMessage("");
+    } else {
       setSaveMessage("Đã lưu mẫu vào hồ sơ khách.");
     }
   };
-
   const handleImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -90,6 +100,23 @@ function PageContent() {
       setDesignImages(data.designImages || []);
       setDesignImage(data.designImages?.[0] || null);
       setSelectedDesign(0);
+           if (customerId && data.designImages?.length > 0) {
+        const uploadedUrls = await Promise.all(
+          data.designImages.map((img: string) => uploadImage(img))
+        );
+        const validUrls = uploadedUrls.filter((url) => url !== null);
+
+        const { error: updateError } = await supabase
+          .from("customers")
+          .update({ all_design_images: validUrls })
+          .eq("id", Number(customerId));
+
+        if (updateError) {
+          console.error("Lỗi lưu all_design_images:", updateError.message);
+        } else {
+          console.log("Đã lưu all_design_images thành công!");
+        }
+      }
     } catch (error) {
       setResult("⚠️ AI chưa thể tạo gợi ý lúc này. Vui lòng thử lại sau.");
       console.error(error);

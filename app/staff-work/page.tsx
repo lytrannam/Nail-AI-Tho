@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { translations } from "../../lib/translations";
 
 type WorkItem = {
   appointmentId: number;
   customerId: number;
   customerName: string;
   designImage: string | null;
+  tryonImage: string | null;
   service: string | null;
 };
 
 export default function StaffWorkPage() {
+  const t = translations.vi;
   const [staffName, setStaffName] = useState("");
   const [salonId, setSalonId] = useState("");
   const [items, setItems] = useState<WorkItem[]>([]);
@@ -65,23 +68,27 @@ export default function StaffWorkPage() {
 
     const { data: customers } = await supabase
       .from("customers")
-      .select("id, name, selected_design_image")
+      .select("id, name, selected_design_image, tryon_image")
       .in("id", customerIds);
 
-    const workItems: WorkItem[] = appointments.map((appt) => {
-      const customer = customers?.find((c) => c.id === appt.customer_id);
-      const shortName = customer?.name
-        ? customer.name.split(" ").slice(-1)[0]
-        : "Khách";
+    const workItems: WorkItem[] = appointments
+      .sort(
+        (a, b) =>
+          new Date(a.appointments_at).getTime() -
+          new Date(b.appointments_at).getTime()
+      )
+      .map((appt, index) => {
+        const customer = customers?.find((c) => c.id === appt.customer_id);
 
-      return {
-        appointmentId: appt.id,
-        customerId: appt.customer_id,
-        customerName: shortName,
-        designImage: customer?.selected_design_image || null,
-        service: appt.service,
-      };
-    });
+        return {
+          appointmentId: appt.id,
+          customerId: appt.customer_id,
+          customerName: `Khách số ${index + 1}`,
+          designImage: customer?.selected_design_image || null,
+          tryonImage: customer?.tryon_image || null,
+          service: appt.service,
+        };
+      });
 
     setItems(workItems);
     setLoading(false);
@@ -98,7 +105,6 @@ export default function StaffWorkPage() {
     setSelectedItem(item);
     setCapturedImage(null);
     setSavedMessage(false);
-    setTimeout(() => fileInput.current?.click(), 100);
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,7 +175,7 @@ export default function StaffWorkPage() {
       >
         <div style={{ fontSize: "80px" }}>✅</div>
         <h1 style={{ fontSize: "28px", textAlign: "center", padding: "0 20px" }}>
-          Đã lưu cho {selectedItem?.customerName}
+          {t.staffSavedFor} {selectedItem?.customerName}
         </h1>
       </main>
     );
@@ -186,7 +192,9 @@ export default function StaffWorkPage() {
           textAlign: "center",
         }}
       >
-        <h2 style={{ fontSize: "26px" }}>Ảnh cho {selectedItem.customerName}</h2>
+        <h2 style={{ fontSize: "26px" }}>
+          {t.staffTakePhotoFor} {selectedItem.customerName}
+        </h2>
         <img
           src={capturedImage}
           alt="Ảnh vừa chụp"
@@ -197,7 +205,15 @@ export default function StaffWorkPage() {
             marginTop: "20px",
           }}
         />
-        <div style={{ marginTop: "30px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
+        <div
+          style={{
+            marginTop: "30px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            alignItems: "center",
+          }}
+        >
           <button
             type="button"
             onClick={handleSave}
@@ -215,7 +231,7 @@ export default function StaffWorkPage() {
               cursor: "pointer",
             }}
           >
-            {saving ? "Đang lưu..." : "✅ DÙNG ẢNH NÀY"}
+            {saving ? t.staffSaving : t.staffUseThisPhoto}
           </button>
           <button
             type="button"
@@ -231,7 +247,7 @@ export default function StaffWorkPage() {
               cursor: "pointer",
             }}
           >
-            🔄 CHỤP LẠI
+            {t.staffRetake}
           </button>
         </div>
       </main>
@@ -260,9 +276,25 @@ export default function StaffWorkPage() {
           style={{ display: "none" }}
           onChange={handleImageChange}
         />
-        <h2 style={{ fontSize: "26px", marginBottom: "30px" }}>
-          Chụp tay cho {selectedItem.customerName}
+        <h2 style={{ fontSize: "26px", marginBottom: "20px" }}>
+          {t.staffTakePhotoFor} {selectedItem.customerName}
         </h2>
+
+        {(selectedItem.tryonImage || selectedItem.designImage) && (
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <p style={{ fontSize: "16px", color: "#666" }}>Mẫu cần làm:</p>
+            <img
+              src={selectedItem.tryonImage || selectedItem.designImage || ""}
+              alt="Mẫu cần làm"
+              style={{
+                width: "220px",
+                borderRadius: "14px",
+                border: "2px solid #ddd",
+              }}
+            />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
@@ -278,7 +310,7 @@ export default function StaffWorkPage() {
             cursor: "pointer",
           }}
         >
-          📷 CHỤP
+          {t.staffTakePhotoButton}
         </button>
         <button
           type="button"
@@ -293,7 +325,7 @@ export default function StaffWorkPage() {
             cursor: "pointer",
           }}
         >
-          Hủy
+          {t.staffCancel}
         </button>
       </main>
     );
@@ -302,21 +334,31 @@ export default function StaffWorkPage() {
   // Màn hình danh sách khách chờ
   return (
     <main style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: "24px" }}>Xin chào, {staffName}</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h1 style={{ fontSize: "24px" }}>
+          {t.staffWelcome}, {staffName}
+        </h1>
         <button
           type="button"
           onClick={handleLogout}
           style={{ padding: "10px 16px", cursor: "pointer" }}
         >
-          Đăng xuất
+          {t.staffLogout}
         </button>
       </div>
 
-      <h2 style={{ fontSize: "20px", marginTop: "20px" }}>Khách hôm nay</h2>
+      <h2 style={{ fontSize: "20px", marginTop: "20px" }}>
+        {t.staffTodayCustomers}
+      </h2>
 
       {items.length === 0 ? (
-        <p style={{ fontSize: "18px" }}>Chưa có khách nào hôm nay.</p>
+        <p style={{ fontSize: "18px" }}>{t.staffNoCustomers}</p>
       ) : (
         items.map((item) => (
           <button
@@ -337,11 +379,16 @@ export default function StaffWorkPage() {
               textAlign: "left",
             }}
           >
-            {item.designImage ? (
+            {item.tryonImage || item.designImage ? (
               <img
-                src={item.designImage}
+                src={item.tryonImage || item.designImage || ""}
                 alt="Mẫu nail"
-                style={{ width: "70px", height: "70px", borderRadius: "12px", objectFit: "cover" }}
+                style={{
+                  width: "70px",
+                  height: "70px",
+                  borderRadius: "12px",
+                  objectFit: "cover",
+                }}
               />
             ) : (
               <div

@@ -120,7 +120,10 @@ function AppointmentsContent() {
       return;
     }
 
-    // Đặt lịch mới = 1 lượt ghé mới → cho phép dùng thử lại từ đầu
+    // Đặt lịch mới = 1 lượt ghé mới → cho phép dùng thử lại từ đầu, tạo mã truy cập mới
+    const newToken =
+      Math.random().toString(36).slice(2) + Date.now().toString(36);
+
     await supabase
       .from("customers")
       .update({
@@ -128,6 +131,7 @@ function AppointmentsContent() {
         selected_design_image: null,
         selected_design: null,
         tryon_used: false,
+        session_token: newToken,
       })
       .eq("id", Number(customerId));
       

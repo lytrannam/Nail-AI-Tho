@@ -21,6 +21,7 @@ function CustomerDetailsContent() {
   const [selectedDesign, setSelectedDesign] = useState("");
   const [selectedDesignImage, setSelectedDesignImage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCustomer = async () => {
@@ -37,7 +38,7 @@ function CustomerDetailsContent() {
 
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, nail_history, selected_design, selected_design_image, last_visit")
+        .select("id, name, phone, nail_history, selected_design, selected_design_image, last_visit, session_token")
         .eq("id", customerId)
         .single();
 
@@ -52,6 +53,7 @@ function CustomerDetailsContent() {
         setSelectedDesign(data.selected_design || "");
         setSelectedDesignImage(data.selected_design_image || null);
         setLastVisit(data.last_visit || null);
+        setSessionToken(data.session_token || null);
       }
     };
 
@@ -120,8 +122,9 @@ function CustomerDetailsContent() {
 
           <button
             type="button"
+            disabled={!sessionToken}
             onClick={() => {
-              window.location.href = `/?customerId=${customerId}`;
+              window.location.href = `/?token=${sessionToken}`;
             }}
             style={{
               padding: "12px 18px",

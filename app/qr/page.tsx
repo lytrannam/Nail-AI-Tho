@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { supabase } from "../../lib/supabase";
 
 
 export default function QrPage() {

@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { translations, Language } from "../lib/translations";
 
 function PageContent() {
   const searchParams = useSearchParams();
-  const customerId = searchParams.get("customerId");
+  const token = searchParams.get("token");
+
   const fileInput = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState("");
@@ -20,8 +21,33 @@ function PageContent() {
   const [tryOnError, setTryOnError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [lang, setLang] = useState<Language>("en");
+  const [tryonUsed, setTryonUsed] = useState(false);
+
+  // Khách đã có hồ sơ (nhận diện qua token) hay khách vãng lai (chưa có)
+  const [customerId, setCustomerId] = useState<number | null>(null);
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInPhone, setWalkInPhone] = useState("");
+  const [walkInSaving, setWalkInSaving] = useState(false);
+  const [walkInSaved, setWalkInSaved] = useState(false);
 
   const t = translations[lang];
+
+  useEffect(() => {
+    const loadByToken = async () => {
+      if (!token) return;
+      const { data } = await supabase
+        .from("customers")
+        .select("id, tryon_used")
+        .eq("session_token", token)
+        .single();
+
+      if (data) {
+        setCustomerId(data.id);
+        setTryonUsed(data.tryon_used || false);
+      }
+    };
+    loadByToken();
+  }, [token]);
 
   const saveSelectedDesign = async (index: number, imageUrl: string) => {
     if (!customerId) return;
@@ -32,12 +58,8 @@ function PageContent() {
         selected_design: `Mẫu ${index + 1}`,
         selected_design_image: imageUrl,
       })
-      .eq("id", Number(customerId));
+      .eq("id", customerId);
 
-    if (error) {
-      console.error(error);
-      alert("Không thể lưu mẫu nail đã chọn.");
-    }
     if (!error) {
       setSaveMessage(t.savedMessage);
     }
@@ -76,12 +98,8 @@ function PageContent() {
     try {
       const response = await fetch("/api", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image }),
       });
 
       const data = await response.json();
@@ -105,7 +123,7 @@ function PageContent() {
         await supabase
           .from("customers")
           .update({ all_design_images: validUrls })
-          .eq("id", Number(customerId));
+          .eq("id", customerId);
       }
     } catch (error) {
       setResult("⚠️ AI chưa thể tạo gợi ý lúc này. Vui lòng thử lại sau.");
@@ -124,13 +142,8 @@ function PageContent() {
 
       const response = await fetch("/api/try-on", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image,
-          designImage,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image, designImage }),
       });
       const data = await response.json();
 
@@ -139,12 +152,66 @@ function PageContent() {
       }
 
       setTryOnImage(data.tryOnImage);
+
+      if (customerId && data.tryOnImage) {
+        const { uploadImage } = await import("../lib/uploadImage");
+        const uploadedTryOnUrl = await uploadImage(data.tryOnImage);
+        if (uploadedTryOnUrl) {
+          await supabase
+            .from("customers")
+            .update({ tryon_image: uploadedTryOnUrl, tryon_used: true })
+            .eq("id", customerId);
+          setTryonUsed(true);
+        }
+      }
     } catch (error) {
       console.error(error);
       setTryOnError(t.tryOnError);
     } finally {
       setTryOnLoading(false);
     }
+  };
+
+  // Khách vãng lai bấm "Lưu mẫu, tôi muốn làm" — tạo hồ sơ tại chỗ
+  const saveAsWalkIn = async () => {
+    if (!walkInName.trim() || !walkInPhone.trim()) {
+      alert("Vui lòng nhập tên và số điện thoại.");
+      return;
+    }
+
+    setWalkInSaving(true);
+
+    const { data: userData } = await supabase.auth.getUser();
+    // Với khách vãng lai chưa đăng nhập, cần biết tiệm nào — lấy qua salon param nếu có
+    const salonParam = searchParams.get("salon");
+
+    const newToken =
+      Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    const { data, error } = await supabase
+      .from("customers")
+      .insert({
+        name: walkInName.trim(),
+        phone: walkInPhone.trim(),
+        user_id: salonParam || userData?.user?.id,
+        session_token: newToken,
+        selected_design: selectedDesign !== null ? `Mẫu ${selectedDesign + 1}` : null,
+        selected_design_image: designImage,
+        all_design_images: designImages,
+      })
+      .select("id")
+      .single();
+
+    setWalkInSaving(false);
+
+    if (error) {
+      console.error(error);
+      alert("Không thể lưu thông tin. Vui lòng thử lại.");
+      return;
+    }
+
+    setCustomerId(data.id);
+    setWalkInSaved(true);
   };
 
   return (
@@ -173,34 +240,12 @@ function PageContent() {
         🌐 {t.switchLang}
       </button>
 
-      {customerId && (
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = `/customer-details?id=${customerId}`;
-          }}
-          style={{
-            padding: "10px 16px",
-            marginBottom: "20px",
-            cursor: "pointer",
-          }}
-        >
-          {t.backToProfile}
-        </button>
-      )}
-      {saveMessage && (
-        <p style={{ marginBottom: "20px" }}>
-          {saveMessage}
-        </p>
-      )}
+      {saveMessage && <p style={{ marginBottom: "20px" }}>{saveMessage}</p>}
+
       <div style={{ marginBottom: "30px" }}>
         <div style={{ fontSize: "42px", marginBottom: "8px" }}>💅</div>
-
         <h1 style={{ margin: "0 0 8px" }}>{t.appTitle}</h1>
-
-        <p style={{ fontSize: "18px", margin: "0 0 20px" }}>
-          {t.appSubtitle}
-        </p>
+        <p style={{ fontSize: "18px", margin: "0 0 20px" }}>{t.appSubtitle}</p>
 
         <div
           style={{
@@ -244,19 +289,12 @@ function PageContent() {
       {image && (
         <div style={{ marginTop: "30px" }}>
           <h2>{t.yourHandPhoto}</h2>
-
           <img
             src={image}
             alt={t.yourHandPhoto}
-            style={{
-              maxWidth: "90%",
-              width: "350px",
-              borderRadius: "18px",
-            }}
+            style={{ maxWidth: "90%", width: "350px", borderRadius: "18px" }}
           />
-
           <br />
-
           <button
             onClick={analyzeImage}
             disabled={loading}
@@ -286,6 +324,7 @@ function PageContent() {
         >
           <h2>{t.suggestionsTitle}</h2>
           <p style={{ whiteSpace: "pre-wrap" }}>{result}</p>
+
           {designImages.length > 0 && (
             <div style={{ marginTop: "25px" }}>
               <h2>{t.chooseDesignTitle}</h2>
@@ -307,7 +346,7 @@ function PageContent() {
                     type="button"
                     onClick={() => {
                       setSelectedDesign(index);
-                      saveSelectedDesign(index, img);
+                      if (customerId) saveSelectedDesign(index, img);
                       setDesignImage(img);
                       setTryOnImage(null);
                       setTryOnError("");
@@ -326,12 +365,8 @@ function PageContent() {
                     <img
                       src={img}
                       alt={`${t.design} ${index + 1}`}
-                      style={{
-                        width: "100%",
-                        borderRadius: "12px",
-                      }}
+                      style={{ width: "100%", borderRadius: "12px" }}
                     />
-
                     <div style={{ marginTop: "8px", fontWeight: "bold" }}>
                       {t.design} {index + 1}
                     </div>
@@ -340,9 +375,10 @@ function PageContent() {
               </div>
             </div>
           )}
+
           <button
             onClick={tryOnNails}
-            disabled={tryOnLoading || !designImage || !image}
+            disabled={tryOnLoading || !designImage || !image || tryonUsed}
             type="button"
             style={{
               marginTop: "18px",
@@ -353,10 +389,15 @@ function PageContent() {
           >
             {tryOnLoading ? t.tryOnLoading : t.tryOnButton}
           </button>
+          {tryonUsed && !tryOnImage && (
+            <p style={{ marginTop: "10px", color: "#888", fontSize: "14px" }}>
+              You've used your free try-on for this visit.
+            </p>
+          )}
+
           {tryOnImage && (
             <div style={{ marginTop: "25px" }}>
               <h2>{t.tryOnResultTitle}</h2>
-
               <img
                 src={tryOnImage}
                 alt={t.tryOnResultTitle}
@@ -370,8 +411,65 @@ function PageContent() {
             </div>
           )}
           {tryOnError && (
-            <p style={{ marginTop: "15px", color: "red" }}>
-              {tryOnError}
+            <p style={{ marginTop: "15px", color: "red" }}>{tryOnError}</p>
+          )}
+
+          {/* Khách vãng lai chưa có hồ sơ — hiện form lưu thông tin */}
+          {!customerId && designImages.length > 0 && !walkInSaved && (
+            <div
+              style={{
+                marginTop: "30px",
+                padding: "20px",
+                background: "#f7f7f7",
+                borderRadius: "16px",
+              }}
+            >
+              <h3>Save this design — I want it!</h3>
+              <input
+                value={walkInName}
+                onChange={(e) => setWalkInName(e.target.value)}
+                placeholder="Your name"
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginBottom: "10px",
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                value={walkInPhone}
+                onChange={(e) => setWalkInPhone(e.target.value)}
+                placeholder="Phone number"
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginBottom: "10px",
+                  boxSizing: "border-box",
+                }}
+              />
+              <button
+                type="button"
+                onClick={saveAsWalkIn}
+                disabled={walkInSaving}
+                style={{
+                  padding: "12px 20px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                {walkInSaving ? "Saving..." : "Save & show to technician"}
+                </button>
+            </div>
+          )}
+
+          {walkInSaved && (
+            <p
+              style={{
+                marginTop: "20px",
+                fontWeight: "bold",
+              }}
+            >
+              ✅ Information saved successfully.
             </p>
           )}
         </div>
@@ -380,10 +478,10 @@ function PageContent() {
   );
 }
 
-export default function Page() {
+export default function Home() {
   return (
-    <Suspense fallback={<main style={{ padding: "40px 20px", textAlign: "center" }}>Loading...</main>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <PageContent />
     </Suspense>
   );
-}
+}            

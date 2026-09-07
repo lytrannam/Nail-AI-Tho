@@ -10,7 +10,15 @@ export default function QrPage() {
 const [salonUrl, setSalonUrl] = useState("");
 
 useEffect(() => {
-  setSalonUrl(window.location.origin);
+  const buildUrl = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      setSalonUrl(`${window.location.origin}/?salon=${user.id}`);
+    }
+  };
+  buildUrl();
 }, []);
 
   const downloadQr = () => {

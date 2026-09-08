@@ -56,7 +56,8 @@ export default function CustomersPage() {
       alert("Bạn cần đăng nhập.");
       return;
     }
-
+const newToken =
+  Math.random().toString(36).slice(2) + Date.now().toString(36);
     const { data, error } = await supabase
       .from("customers")
       .insert({
@@ -64,6 +65,7 @@ export default function CustomersPage() {
         phone: phone.trim(),
         email: email.trim() || null,
         user_id: user.id,
+        session_token: newToken,
       })
       .select("id, name, phone, email")
       .single();
@@ -179,7 +181,48 @@ export default function CustomersPage() {
         >
           📊 Xem thống kê
         </button>
-
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/staff-manage";
+          }}
+          style={{
+            padding: "10px 16px",
+            marginBottom: "10px",
+            marginLeft: "8px",
+            cursor: "pointer",
+          }}
+        >
+          👤 Quản lý thợ
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/staff-qr";
+          }}
+          style={{
+            padding: "10px 16px",
+            marginBottom: "10px",
+            marginLeft: "8px",
+            cursor: "pointer",
+          }}
+        >
+          🔒 Mã QR cho thợ
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/loyalty-settings";
+          }}
+          style={{
+            padding: "10px 16px",
+            marginBottom: "10px",
+            marginLeft: "8px",
+            cursor: "pointer",
+          }}
+        >
+          🎁 Điểm thưởng
+        </button>
         <div
           style={{
             background: "white",

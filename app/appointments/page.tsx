@@ -30,6 +30,7 @@ function AppointmentsContent() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [service, setService] = useState("");
+  const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -124,6 +125,16 @@ function AppointmentsContent() {
     const newToken =
       Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+    const { data: currentCustomer } = await supabase
+      .from("customers")
+      .select("visit_count, total_spent")
+      .eq("id", Number(customerId))
+      .single();
+
+    const newVisitCount = (currentCustomer?.visit_count || 0) + 1;
+    const newTotalSpent =
+      (currentCustomer?.total_spent || 0) + (Number(price) || 0);
+
     await supabase
       .from("customers")
       .update({
@@ -132,6 +143,8 @@ function AppointmentsContent() {
         selected_design: null,
         tryon_used: false,
         session_token: newToken,
+        visit_count: newVisitCount,
+        total_spent: newTotalSpent,
       })
       .eq("id", Number(customerId));
       
@@ -146,6 +159,7 @@ function AppointmentsContent() {
     setDate("");
     setTime("");
     setService("");
+    setPrice("");
     setNotes("");
     alert("Đã đặt lịch hẹn.");
   };
@@ -203,6 +217,16 @@ function AppointmentsContent() {
               value={service}
               onChange={(e) => setService(e.target.value)}
               placeholder="Ví dụ: Sơn gel, đắp bột..."
+              style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+            />
+          </label>
+          <label style={{ display: "block", marginBottom: "10px" }}>
+            Giá tiền ($)
+            <input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Ví dụ: 35"
               style={{ width: "100%", padding: "10px", marginTop: "4px" }}
             />
           </label>

@@ -25,6 +25,14 @@ function PageContent() {
 
   // Khách đã có hồ sơ (nhận diện qua token) hay khách vãng lai (chưa có)
   const [customerId, setCustomerId] = useState<number | null>(null);
+    const [loyaltyInfo, setLoyaltyInfo] = useState<{
+    enabled: boolean;
+    visitsRequired: number;
+    amountRequired: number;
+    discountPercent: number;
+    currentVisits: number;
+    currentSpent: number;
+  } | null>(null);
   const [walkInName, setWalkInName] = useState("");
   const [walkInPhone, setWalkInPhone] = useState("");
   const [walkInSaving, setWalkInSaving] = useState(false);
@@ -33,21 +41,33 @@ function PageContent() {
   const t = translations[lang];
 
   useEffect(() => {
-    const loadByToken = async () => {
-      if (!token) return;
-      const { data } = await supabase
-        .from("customers")
-        .select("id, tryon_used")
-        .eq("session_token", token)
-        .single();
+  const loadByToken = async () => {
+    if (!token) return;
 
-      if (data) {
-        setCustomerId(data.id);
-        setTryonUsed(data.tryon_used || false);
+    try {
+      const response = await fetch(
+        `/api/customer-by-token?token=${encodeURIComponent(token)}`
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.customer) {
+        console.error("Không tìm thấy khách:", result);
+        return;
       }
-    };
-    loadByToken();
-  }, [token]);
+
+      const data = result.customer;
+
+      setCustomerId(data.id);
+      setTryonUsed(data.tryon_used || false);
+     
+    } catch (error) {
+      console.error("Lỗi đọc token:", error);
+    }
+  };
+
+  loadByToken();
+}, [token]);
 
   const saveSelectedDesign = async (index: number, imageUrl: string) => {
     if (!customerId) return;
@@ -241,6 +261,31 @@ function PageContent() {
       </button>
 
       {saveMessage && <p style={{ marginBottom: "20px" }}>{saveMessage}</p>}
+      {loyaltyInfo?.enabled && (
+        <div
+          style={{
+            maxWidth: "500px",
+            margin: "0 auto 20px",
+            padding: "14px",
+            borderRadius: "12px",
+            background: "#fff3cd",
+            border: "1px solid #ffe08a",
+          }}
+        >
+          {loyaltyInfo.currentVisits >= loyaltyInfo.visitsRequired ||
+          loyaltyInfo.currentSpent >= loyaltyInfo.amountRequired ? (
+            <strong>
+              🎉 You've earned {loyaltyInfo.discountPercent}% off your next visit!
+            </strong>
+          ) : (
+            <span>
+              🎁 Loyalty progress: {loyaltyInfo.currentVisits}/
+              {loyaltyInfo.visitsRequired} visits — get{" "}
+              {loyaltyInfo.discountPercent}% off when you reach the goal!
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ marginBottom: "30px" }}>
         <div style={{ fontSize: "42px", marginBottom: "8px" }}>💅</div>

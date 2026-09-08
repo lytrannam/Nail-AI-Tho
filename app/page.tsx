@@ -14,6 +14,7 @@ function PageContent() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [designImages, setDesignImages] = useState<string[]>([]);
+  const [designSources, setDesignSources] = useState<("real" | "ai")[]>([]);
   const [designImage, setDesignImage] = useState<string | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<number | null>(null);
   const [tryOnImage, setTryOnImage] = useState<string | null>(null);
@@ -97,6 +98,7 @@ function PageContent() {
         setSelectedDesign(null);
         setDesignImage(null);
         setDesignImages([]);
+        setDesignSources([]);
         setTryOnImage(null);
         setTryOnError("");
       };
@@ -119,7 +121,7 @@ function PageContent() {
       const response = await fetch("/api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image }),
+        body: JSON.stringify({ image, customerId }),
       });
 
       const data = await response.json();
@@ -130,6 +132,9 @@ function PageContent() {
 
       setResult(data.result);
       setDesignImages(data.designImages || []);
+      setDesignSources(
+        data.designSources || (data.designImages || []).map(() => "ai" as const)
+      );
       setDesignImage(data.designImages?.[0] || null);
       setSelectedDesign(0);
 
@@ -415,6 +420,18 @@ function PageContent() {
                     <div style={{ marginTop: "8px", fontWeight: "bold" }}>
                       {t.design} {index + 1}
                     </div>
+                    {designSources[index] === "real" && (
+                      <div
+                        style={{
+                          marginTop: "4px",
+                          fontSize: "12px",
+                          color: "#0a7d32",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓ Thợ đã từng làm mẫu này
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -529,4 +546,4 @@ export default function Home() {
       <PageContent />
     </Suspense>
   );
-}            
+}

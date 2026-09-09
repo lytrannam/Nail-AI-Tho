@@ -3,17 +3,21 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
+
+type CustomerData = {
+  id: string;
+  name: string;
+  phone: string;
+  nail_history: string | null;
+};
 
 function CustomerDetailsContent() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
+  const [lang, setLang] = useState<Language>("vi");
 
-  const [customer, setCustomer] = useState<{
-    id: string;
-    name: string;
-    phone: string;
-    nail_history: string | null;
-  } | null>(null);
+  const [customer, setCustomer] = useState<CustomerData | null>(null);
 
   const [nailHistory, setNailHistory] = useState("");
   const [newNailHistory, setNewNailHistory] = useState("");
@@ -22,6 +26,8 @@ function CustomerDetailsContent() {
   const [selectedDesignImage, setSelectedDesignImage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  const t = translations[lang];
 
   useEffect(() => {
     const loadCustomer = async () => {
@@ -32,7 +38,7 @@ function CustomerDetailsContent() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        alert("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+        alert(t.cdSessionExpired);
         return;
       }
 
@@ -43,7 +49,7 @@ function CustomerDetailsContent() {
         .single();
 
       if (error) {
-        alert("Lỗi tải khách hàng: " + error.message);
+        alert(t.cdLoadError.replace("{error}", error.message));
         return;
       }
 
@@ -58,6 +64,7 @@ function CustomerDetailsContent() {
     };
 
     loadCustomer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
   const saveNailHistory = async () => {
@@ -78,11 +85,11 @@ function CustomerDetailsContent() {
     setSaving(false);
 
     if (error) {
-      alert("Không thể lưu lịch sử nail.");
+      alert(t.cdSaveHistoryError);
       return;
     }
 
-    alert("Đã lưu lịch sử nail.");
+    alert(t.cdSaveHistorySuccess);
     const updatedHistory = newNailHistory
       ? `${nailHistory}\n${new Date().toLocaleDateString()} - ${newNailHistory}`.trim()
       : nailHistory;
@@ -93,23 +100,48 @@ function CustomerDetailsContent() {
   };
 
   return (
-    <main style={{ padding: "40px 20px", fontFamily: "Arial" }}>
-      <h1>Hồ sơ khách hàng</h1>
+    <main style={{ padding: "40px 20px", fontFamily: "Arial", position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
+      <h1>{t.cdTitle}</h1>
 
       {!customer ? (
-        <p>Đang tải thông tin khách hàng...</p>
+        <p>{t.cdLoading}</p>
       ) : (
         <div>
           <h2>{customer.name}</h2>
-          {lastVisit && <p>Lần ghé thăm gần nhất: {new Date(lastVisit).toLocaleDateString()}</p>}
-          <p>Số điện thoại: {customer.phone || "Chưa có số điện thoại"}</p>
+          {lastVisit && (
+            <p>
+              {t.cdLastVisit}
+              {new Date(lastVisit).toLocaleDateString(lang === "vi" ? "vi-VN" : "en-US")}
+            </p>
+          )}
+          <p>
+            {t.cdPhone}
+            {customer.phone || t.cdNoPhone}
+          </p>
           <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-            <h3>Mẫu nail đã chọn</h3>
-            <p>{selectedDesign || "Chưa có mẫu nail được chọn."}</p>
+            <h3>{t.cdSelectedDesignTitle}</h3>
+            <p>{selectedDesign || t.cdNoDesignSelected}</p>
             {selectedDesignImage && (
               <img
                 src={selectedDesignImage}
-                alt="Mẫu nail đã chọn"
+                alt={t.cdSelectedDesignTitle}
                 style={{
                   width: "220px",
                   maxWidth: "100%",
@@ -132,7 +164,7 @@ function CustomerDetailsContent() {
               cursor: "pointer",
             }}
           >
-            Mở AI chọn mẫu nail
+            {t.cdOpenAiButton}
           </button>
 
           <button
@@ -146,20 +178,18 @@ function CustomerDetailsContent() {
               cursor: "pointer",
             }}
           >
-            Đặt lịch hẹn
+            {t.cdBookButton}
           </button>
 
-          <h3>Lịch sử làm nail</h3>
+          <h3>{t.cdHistoryTitle}</h3>
           {nailHistory && (
-            <p style={{ whiteSpace: "pre-line" }}>
-              {nailHistory}
-            </p>
+            <p style={{ whiteSpace: "pre-line" }}>{nailHistory}</p>
           )}
 
           <textarea
             value={newNailHistory}
             onChange={(e) => setNewNailHistory(e.target.value)}
-            placeholder="Nhập lịch sử làm nail của khách..."
+            placeholder={t.cdHistoryPlaceholder}
             rows={6}
             style={{
               width: "100%",
@@ -180,7 +210,7 @@ function CustomerDetailsContent() {
                 fontWeight: "bold",
               }}
             >
-              {saving ? "Đang lưu..." : "Lưu lịch sử nail"}
+              {saving ? t.cdSaving : t.cdSaveHistoryButton}
             </button>
           </div>
         </div>
@@ -191,7 +221,7 @@ function CustomerDetailsContent() {
 
 export default function CustomerDetailsPage() {
   return (
-    <Suspense fallback={<main style={{ padding: "40px 20px" }}>Đang tải...</main>}>
+    <Suspense fallback={<main style={{ padding: "40px 20px" }}>Loading...</main>}>
       <CustomerDetailsContent />
     </Suspense>
   );

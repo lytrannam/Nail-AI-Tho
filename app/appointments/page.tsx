@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
 
 type Appointment = {
   id: number;
@@ -26,12 +27,15 @@ function AppointmentsContent() {
   const [customer, setCustomer] = useState<CustomerBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lang, setLang] = useState<Language>("vi");
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [service, setService] = useState("");
   const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
+
+  const t = translations[lang];
 
   useEffect(() => {
     const load = async () => {
@@ -67,7 +71,7 @@ function AppointmentsContent() {
       const { data, error } = await query;
 
       if (error) {
-        console.error("Lỗi Supabase:", error.message, error.details, error.hint);
+        console.error("Supabase error:", error.message, error.details, error.hint);
       } else {
         setAppointments(data || []);
       }
@@ -80,11 +84,11 @@ function AppointmentsContent() {
 
   const addAppointment = async () => {
     if (!customerId) {
-      alert("Thiếu thông tin khách hàng — vui lòng mở trang này từ hồ sơ khách.");
+      alert(t.apptMissingCustomer);
       return;
     }
     if (!date || !time) {
-      alert("Vui lòng chọn ngày và giờ hẹn.");
+      alert(t.apptMissingDateTime);
       return;
     }
 
@@ -93,7 +97,7 @@ function AppointmentsContent() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("Bạn cần đăng nhập.");
+      alert(t.apptLoginRequired);
       return;
     }
 
@@ -117,11 +121,11 @@ function AppointmentsContent() {
 
     if (error) {
       console.error(error);
-      alert("Không thể lưu lịch hẹn.");
+      alert(t.apptSaveError);
       return;
     }
 
-    // Đặt lịch mới = 1 lượt ghé mới → cho phép dùng thử lại từ đầu, tạo mã truy cập mới
+    // New booking = a new visit → allow a fresh trial, generate a new access token
     const newToken =
       Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -147,7 +151,6 @@ function AppointmentsContent() {
         total_spent: newTotalSpent,
       })
       .eq("id", Number(customerId));
-      
 
     setAppointments((prev) =>
       [...prev, data].sort(
@@ -161,19 +164,39 @@ function AppointmentsContent() {
     setService("");
     setPrice("");
     setNotes("");
-    alert("Đã đặt lịch hẹn.");
+    alert(t.apptSavedSuccess);
   };
 
   if (loading) {
-    return <main style={{ padding: "30px" }}>Đang tải lịch hẹn...</main>;
+    return <main style={{ padding: "30px" }}>{t.apptLoading}</main>;
   }
 
   return (
-    <main style={{ padding: "30px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Lịch hẹn</h1>
+    <main
+      style={{ padding: "30px", fontFamily: "Arial, sans-serif", position: "relative" }}
+    >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
+      <h1>{t.apptTitle}</h1>
       {customer && (
         <p>
-          Đặt lịch cho: <strong>{customer.name}</strong>
+          {t.apptBookingFor}
+          <strong>{customer.name}</strong>
           {customer.phone ? ` — ${customer.phone}` : ""}
         </p>
       )}
@@ -188,10 +211,10 @@ function AppointmentsContent() {
             maxWidth: "500px",
           }}
         >
-          <h3>Đặt lịch hẹn mới</h3>
+          <h3>{t.apptNewTitle}</h3>
 
           <label style={{ display: "block", marginBottom: "10px" }}>
-            Ngày
+            {t.apptDateLabel}
             <input
               type="date"
               value={date}
@@ -201,7 +224,7 @@ function AppointmentsContent() {
           </label>
 
           <label style={{ display: "block", marginBottom: "10px" }}>
-            Giờ
+            {t.apptTimeLabel}
             <input
               type="time"
               value={time}
@@ -211,28 +234,28 @@ function AppointmentsContent() {
           </label>
 
           <label style={{ display: "block", marginBottom: "10px" }}>
-            Dịch vụ
+            {t.apptServiceLabel}
             <input
               type="text"
               value={service}
               onChange={(e) => setService(e.target.value)}
-              placeholder="Ví dụ: Sơn gel, đắp bột..."
+              placeholder={t.apptServicePlaceholder}
               style={{ width: "100%", padding: "10px", marginTop: "4px" }}
             />
           </label>
           <label style={{ display: "block", marginBottom: "10px" }}>
-            Giá tiền ($)
+            {t.apptPriceLabel}
             <input
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="Ví dụ: 35"
+              placeholder={t.apptPricePlaceholder}
               style={{ width: "100%", padding: "10px", marginTop: "4px" }}
             />
           </label>
 
           <label style={{ display: "block", marginBottom: "10px" }}>
-            Ghi chú
+            {t.apptNotesLabel}
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -247,13 +270,13 @@ function AppointmentsContent() {
             disabled={saving}
             style={{ padding: "12px 20px", cursor: "pointer", fontWeight: "bold" }}
           >
-            {saving ? "Đang lưu..." : "Lưu lịch hẹn"}
+            {saving ? t.apptSaving : t.apptSaveButton}
           </button>
         </div>
       )}
 
       {appointments.length === 0 ? (
-        <p>Chưa có lịch hẹn.</p>
+        <p>{t.apptNoAppointments}</p>
       ) : (
         appointments.map((appointment) => (
           <div
@@ -265,9 +288,11 @@ function AppointmentsContent() {
               borderRadius: "10px",
             }}
           >
-            <strong>{appointment.service || "Dịch vụ nail"}</strong>
+            <strong>{appointment.service || t.apptDefaultService}</strong>
             <p>
-              {new Date(appointment.appointments_at).toLocaleString("vi-VN")}
+              {new Date(appointment.appointments_at).toLocaleString(
+                lang === "vi" ? "vi-VN" : "en-US"
+              )}
             </p>
             {appointment.notes && <p>{appointment.notes}</p>}
           </div>
@@ -279,7 +304,7 @@ function AppointmentsContent() {
 
 export default function AppointmentsPage() {
   return (
-    <Suspense fallback={<main style={{ padding: "30px" }}>Đang tải...</main>}>
+    <Suspense fallback={<main style={{ padding: "30px" }}>Loading...</main>}>
       <AppointmentsContent />
     </Suspense>
   );

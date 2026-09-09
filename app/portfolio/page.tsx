@@ -2,13 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
 
 type PortfolioItem = {
   id: number;
   image_url: string;
   style: string | null;
   color: string | null;
+  skin_tone_group: number | null;
+  difficulty: string | null;
 };
+
+const DIFFICULTY_RANK: Record<string, number> = { easy: 1, medium: 2, hard: 3 };
+
+function sortPortfolio(items: PortfolioItem[]): PortfolioItem[] {
+  return [...items].sort((a, b) => {
+    const toneA = a.skin_tone_group ?? 999;
+    const toneB = b.skin_tone_group ?? 999;
+    if (toneA !== toneB) return toneA - toneB;
+
+    const diffA = DIFFICULTY_RANK[a.difficulty ?? ""] ?? 99;
+    const diffB = DIFFICULTY_RANK[b.difficulty ?? ""] ?? 99;
+    return diffA - diffB;
+  });
+}
 
 export default function PortfolioPage() {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -17,6 +34,16 @@ export default function PortfolioPage() {
   const [message, setMessage] = useState("");
   const [confirmedOwnWork, setConfirmedOwnWork] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [lang, setLang] = useState<Language>("vi");
+
+  const t = translations[lang];
+
+  const difficultyLabel = (difficulty: string | null) => {
+    if (difficulty === "easy") return t.difficultyEasy;
+    if (difficulty === "medium") return t.difficultyMedium;
+    if (difficulty === "hard") return t.difficultyHard;
+    return difficulty;
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -30,11 +57,11 @@ export default function PortfolioPage() {
 
       const { data } = await supabase
         .from("portfolio")
-        .select("id, image_url, style, color")
+        .select("id, image_url, style, color, skin_tone_group, difficulty")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      setPortfolio(data || []);
+      setPortfolio(sortPortfolio(data || []));
     };
 
     init();
@@ -45,7 +72,7 @@ export default function PortfolioPage() {
     if (!files || files.length === 0 || !userId) return;
 
     if (!confirmedOwnWork) {
-      alert("Vui lòng tick xác nhận đây là ảnh thật bạn đã tự làm trước khi tải lên.");
+      alert(t.portfolioConfirmAlert);
       if (fileInput.current) fileInput.current.value = "";
       return;
     }
@@ -83,26 +110,65 @@ export default function PortfolioPage() {
     }
 
     setUploading(false);
-    setMessage(`Đã thêm ${successCount}/${files.length} ảnh vào portfolio.`);
+    setMessage(
+      t.portfolioUploadedMessage
+        .replace("{success}", String(successCount))
+        .replace("{total}", String(files.length))
+    );
 
     const { data } = await supabase
       .from("portfolio")
-      .select("id, image_url, style, color")
+      .select("id, image_url, style, color, skin_tone_group, difficulty")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    setPortfolio(data || []);
+    setPortfolio(sortPortfolio(data || []));
 
     if (fileInput.current) fileInput.current.value = "";
   };
 
+  const handleDelete = async (id: number) => {
+    const confirmed = window.confirm(t.portfolioDeleteConfirm);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("portfolio").delete().eq("id", id);
+
+    if (error) {
+      alert(t.portfolioDeleteError);
+      console.error(error);
+      return;
+    }
+
+    setPortfolio((prev) => prev.filter((item) => item.id !== id));
+  };
+
   return (
-    <main style={{ padding: "40px 20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Portfolio — Tác phẩm thật của bạn</h1>
-      <p>
-        Tải lên ảnh các mẫu nail bạn đã thực sự làm. AI sẽ tự động gắn tag để
-        dùng khi gợi ý cho khách sau này.
-      </p>
+    <main
+      style={{
+        padding: "40px 20px",
+        fontFamily: "Arial, sans-serif",
+        position: "relative",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
+      <h1>{t.portfolioTitle}</h1>
+      <p>{t.portfolioSubtitle}</p>
 
       <div
         style={{
@@ -116,22 +182,12 @@ export default function PortfolioPage() {
           lineHeight: "1.7",
         }}
       >
-        <strong>Cách dùng nhanh:</strong>
+        <strong>{t.portfolioGuideTitle}</strong>
         <ol style={{ margin: "8px 0 0", paddingLeft: "20px" }}>
-          <li>Tick vào ô xác nhận bên dưới.</li>
-          <li>
-            Bấm ô chọn ảnh, chọn <strong>nhiều ảnh cùng lúc</strong> (giữ Ctrl
-            hoặc Shift khi chọn trên máy tính, hoặc chọn nhiều ảnh trên điện
-            thoại).
-          </li>
-          <li>
-            Đợi vài giây để AI tự phân tích và gắn tag từng ảnh — không cần
-            làm gì thêm.
-          </li>
-          <li>
-            Muốn tải 500 ảnh, cứ chọn 20–50 ảnh mỗi lần, lặp lại nhiều lần cho
-            đến khi đủ — không giới hạn số lần tải.
-          </li>
+          <li>{t.portfolioGuideStep1}</li>
+          <li>{t.portfolioGuideStep2}</li>
+          <li>{t.portfolioGuideStep3}</li>
+          <li>{t.portfolioGuideStep4}</li>
         </ol>
       </div>
 
@@ -152,10 +208,7 @@ export default function PortfolioPage() {
           onChange={(e) => setConfirmedOwnWork(e.target.checked)}
           style={{ marginTop: "3px" }}
         />
-        <span>
-          Tôi xác nhận đây là ảnh thật tôi đã tự làm cho khách, không phải ảnh
-          sưu tầm từ nguồn khác.
-        </span>
+        <span>{t.portfolioConfirmLabel}</span>
       </label>
 
       <input
@@ -168,34 +221,79 @@ export default function PortfolioPage() {
         style={{ marginTop: "14px" }}
       />
 
-      {uploading && <p>Đang tải lên và gắn tag, vui lòng đợi...</p>}
+      {uploading && <p>{t.portfolioUploading}</p>}
       {message && <p>{message}</p>}
 
-      <h2 style={{ marginTop: "40px" }}>Đã lưu ({portfolio.length})</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: "14px",
-          marginTop: "16px",
-        }}
-      >
-        {portfolio.map((item: PortfolioItem) => (
-          <div
-            key={item.id}
-            style={{ border: "1px solid #ddd", borderRadius: "12px", padding: "8px" }}
-          >
-            <img
-              src={item.image_url}
-              alt="Portfolio"
-              style={{ width: "100%", borderRadius: "8px" }}
-            />
-            <div style={{ fontSize: "13px", marginTop: "6px" }}>
-              {item.style || "—"} {item.color ? `· ${item.color}` : ""}
+      <h2 style={{ marginTop: "40px" }}>
+        {t.portfolioSavedHeading} ({portfolio.length})
+      </h2>
+      <p style={{ fontSize: "13px", color: "#888", marginTop: "-8px" }}>
+        {t.portfolioSortNote}
+      </p>
+
+      {[1, 2, 3, 4, 5, 6, null].map((tone) => {
+        const group = portfolio.filter((item) => item.skin_tone_group === tone);
+        if (group.length === 0) return null;
+
+        return (
+          <div key={tone ?? "unknown"} style={{ marginTop: "28px" }}>
+            <h3 style={{ fontSize: "16px", marginBottom: "10px" }}>
+              {tone ? `${t.portfolioToneLabel} ${tone}` : t.portfolioUnknownTone}{" "}
+              ({group.length})
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gap: "14px",
+              }}
+            >
+              {group.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: "12px",
+                    padding: "8px",
+                    position: "relative",
+                  }}
+                >
+                  <img
+                    src={item.image_url}
+                    alt="Portfolio"
+                    style={{ width: "100%", borderRadius: "8px" }}
+                  />
+                  <div style={{ fontSize: "13px", marginTop: "6px" }}>
+                    {item.style || "—"} {item.color ? `· ${item.color}` : ""}
+                  </div>
+                  {item.difficulty && (
+                    <div style={{ fontSize: "12px", color: "#888" }}>
+                      {t.portfolioDifficultyLabel}: {difficultyLabel(item.difficulty)}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item.id)}
+                    style={{
+                      marginTop: "8px",
+                      width: "100%",
+                      padding: "6px",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      background: "#fff0f0",
+                      border: "1px solid #f5c2c2",
+                      borderRadius: "6px",
+                      color: "#c0392b",
+                    }}
+                  >
+                    {t.portfolioDeleteButton}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </main>
   );
 }

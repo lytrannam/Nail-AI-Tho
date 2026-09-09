@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
+
+type Customer = {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  last_visit?: string | null;
+  selected_design_image?: string | null;
+  all_design_images?: string[] | null;
+};
 
 export default function CustomersPage() {
   const [name, setName] = useState("");
@@ -10,17 +21,10 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [showRemindersOnly, setShowRemindersOnly] = useState(false);
   const [sendingAll, setSendingAll] = useState(false);
-  const [customers, setCustomers] = useState<
-    {
-      id: string;
-      name: string;
-      phone: string;
-      email?: string | null;
-      last_visit?: string | null;
-      selected_design_image?: string | null;
-      all_design_images?: string[] | null;
-    }[]
-  >([]);
+  const [lang, setLang] = useState<Language>("vi");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+
+  const t = translations[lang];
 
   useEffect(() => {
     const loadCustomers = async () => {
@@ -53,11 +57,11 @@ export default function CustomersPage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("Bạn cần đăng nhập.");
+      alert(t.custLoginRequired);
       return;
     }
-const newToken =
-  Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const newToken =
+      Math.random().toString(36).slice(2) + Date.now().toString(36);
     const { data, error } = await supabase
       .from("customers")
       .insert({
@@ -72,7 +76,7 @@ const newToken =
 
     if (error) {
       console.error(error);
-      alert("Không thể lưu khách hàng.");
+      alert(t.custSaveError);
       return;
     }
 
@@ -122,7 +126,7 @@ const newToken =
     });
 
     if (customersToRemind.length === 0) {
-      alert("Không có khách nào cần nhắc (hoặc chưa có email).");
+      alert(t.custNoReminderNeeded);
       return;
     }
 
@@ -152,7 +156,9 @@ const newToken =
 
     setSendingAll(false);
     alert(
-      `Đã gửi email nhắc cho ${successCount}/${customersToRemind.length} khách.`
+      t.custReminderSentSummary
+        .replace("{success}", String(successCount))
+        .replace("{total}", String(customersToRemind.length))
     );
   };
 
@@ -163,11 +169,29 @@ const newToken =
         padding: "40px 20px",
         fontFamily: "Arial, sans-serif",
         background: "#fafafa",
+        position: "relative",
       }}
     >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-        <h1>Khách hàng</h1>
-        <p>Lưu thông tin khách và lịch sử làm nail.</p>
+        <h1>{t.custPageTitle}</h1>
+        <p>{t.custPageSubtitle}</p>
         <button
           type="button"
           onClick={() => {
@@ -179,7 +203,7 @@ const newToken =
             cursor: "pointer",
           }}
         >
-          📊 Xem thống kê
+          {t.custViewStats}
         </button>
         <button
           type="button"
@@ -193,7 +217,7 @@ const newToken =
             cursor: "pointer",
           }}
         >
-          👤 Quản lý thợ
+          {t.custManageStaff}
         </button>
         <button
           type="button"
@@ -207,7 +231,7 @@ const newToken =
             cursor: "pointer",
           }}
         >
-          🔒 Mã QR cho thợ
+          {t.custStaffQr}
         </button>
         <button
           type="button"
@@ -221,7 +245,7 @@ const newToken =
             cursor: "pointer",
           }}
         >
-          🎁 Điểm thưởng
+          {t.custLoyalty}
         </button>
         <div
           style={{
@@ -234,7 +258,7 @@ const newToken =
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Tên khách hàng"
+            placeholder={t.custNamePlaceholder}
             style={{
               width: "100%",
               padding: "12px",
@@ -246,7 +270,7 @@ const newToken =
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="Số điện thoại"
+            placeholder={t.custPhonePlaceholder}
             style={{
               width: "100%",
               padding: "12px",
@@ -258,7 +282,7 @@ const newToken =
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (không bắt buộc)"
+            placeholder={t.custEmailPlaceholder}
             style={{
               width: "100%",
               padding: "12px",
@@ -276,22 +300,22 @@ const newToken =
               fontWeight: "bold",
             }}
           >
-            + Thêm khách hàng
+            {t.custAddButton}
           </button>
         </div>
 
         <div style={{ marginTop: "30px" }}>
-          <h2>Danh sách khách hàng</h2>
-          <p>Tổng số khách: {customers.length}</p>
+          <h2>{t.custListTitle}</h2>
+          <p>{t.custTotalLabel.replace("{n}", String(customers.length))}</p>
 
           <div
             onClick={() => setShowRemindersOnly(!showRemindersOnly)}
             style={{ fontWeight: "bold", cursor: "pointer" }}
           >
-            🔔 Khách cần nhắc quay lại: {reminderCount}
+            {t.custReminderLabel.replace("{n}", String(reminderCount))}
             {showRemindersOnly && (
               <div style={{ fontWeight: "normal", fontSize: "0.9em" }}>
-                Đang lọc: khách cần nhắc quay lại — bấm 🔔 lần nữa để xem tất cả
+                {t.custFilteringNote}
               </div>
             )}
           </div>
@@ -309,8 +333,8 @@ const newToken =
               }}
             >
               {sendingAll
-                ? "Đang gửi..."
-                : `📧 Gửi email nhắc tất cả (${reminderCount})`}
+                ? t.custSendingAll
+                : t.custSendReminderAll.replace("{n}", String(reminderCount))}
             </button>
           )}
 
@@ -318,7 +342,7 @@ const newToken =
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên, số điện thoại hoặc email..."
+            placeholder={t.custSearchPlaceholder}
             style={{
               width: "100%",
               maxWidth: "400px",
@@ -331,7 +355,7 @@ const newToken =
           />
 
           {filteredCustomers.length === 0 ? (
-            <p>Chưa có khách hàng.</p>
+            <p>{t.custNoCustomers}</p>
           ) : (
             filteredCustomers.map((customer) => (
               <div
@@ -356,16 +380,16 @@ const newToken =
                   {customer.phone ? (
                     <a href={`tel:${customer.phone}`}>{customer.phone}</a>
                   ) : (
-                    "Chưa có số điện thoại"
+                    t.custNoPhone
                   )}
                 </div>
 
                 {customer.phone && (
-                  
-                   <a href={`sms:${customer.phone}`}
+                  <a
+                    href={`sms:${customer.phone}`}
                     style={{ display: "inline-block", marginTop: "6px" }}
                   >
-                    💬 Nhắn tin
+                    {t.custMessage}
                   </a>
                 )}
 
@@ -373,7 +397,7 @@ const newToken =
                   {customer.email ? (
                     <a href={`mailto:${customer.email}`}>{customer.email}</a>
                   ) : (
-                    "Chưa có email"
+                    t.custNoEmail
                   )}
                 </div>
 
@@ -397,9 +421,9 @@ const newToken =
                       });
                       const data = await res.json();
                       if (data.error) {
-                        alert("Lỗi: " + data.error);
+                        alert(t.custReminderError.replace("{error}", data.error));
                       } else {
-                        alert("Đã gửi email nhắc cho " + customer.name);
+                        alert(t.custReminderSentOne.replace("{name}", customer.name));
                       }
                     }}
                     style={{
@@ -409,19 +433,21 @@ const newToken =
                       display: "block",
                     }}
                   >
-                    📧 Gửi email nhắc
+                    {t.custSendReminder}
                   </button>
                 )}
 
                 <div>
-                  Lần ghé gần nhất:{" "}
+                  {t.custLastVisit}
                   {customer.last_visit
-                    ? new Date(customer.last_visit).toLocaleDateString("vi-VN")
-                    : "Chưa có"}
+                    ? new Date(customer.last_visit).toLocaleDateString(
+                        lang === "vi" ? "vi-VN" : "en-US"
+                      )
+                    : t.custNever}
                   {customer.last_visit &&
                     Date.now() - new Date(customer.last_visit).getTime() >
                       21 * 24 * 60 * 60 * 1000 && (
-                      <div>⚠️ Khách đã hơn 21 ngày chưa quay lại</div>
+                      <div>{t.custOverdueWarning}</div>
                     )}
                 </div>
               </div>

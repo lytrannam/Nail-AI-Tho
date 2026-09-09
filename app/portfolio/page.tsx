@@ -36,6 +36,8 @@ export default function PortfolioPage() {
   const [confirmedOwnWork, setConfirmedOwnWork] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [lang, setLang] = useState<Language>("vi");
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const t = translations[lang];
 
@@ -292,7 +294,8 @@ export default function PortfolioPage() {
                   <img
                     src={item.image_url}
                     alt="Portfolio"
-                    style={{ width: "100%", borderRadius: "8px" }}
+                    onClick={() => { setEnlargedImage(item.image_url); setZoom(1); }}
+                    style={{ width: "100%", borderRadius: "8px", cursor: "pointer" }}
                   />
                   <div style={{ fontSize: "13px", marginTop: "6px" }}>
                     {item.style || "—"} {item.color ? `· ${item.color}` : ""}
@@ -325,6 +328,117 @@ export default function PortfolioPage() {
           </div>
         );
       })}
+
+      {enlargedImage && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+            overflow: "auto",
+          }}
+        >
+          <img
+            src={enlargedImage}
+            alt="Portfolio enlarged"
+            style={{
+              maxWidth: zoom === 1 ? "100%" : "none",
+              maxHeight: zoom === 1 ? "80vh" : "none",
+              width: zoom === 1 ? "auto" : `${zoom * 100}%`,
+              borderRadius: "12px",
+              boxShadow: "0 4px 30px rgba(0,0,0,0.5)",
+              transition: "width 0.2s, max-width 0.2s",
+            }}
+          />
+
+          <div
+            style={{
+              position: "fixed",
+              bottom: "24px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: "10px",
+              background: "white",
+              borderRadius: "30px",
+              padding: "8px 14px",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.max(1, z - 0.5))}
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "none",
+                background: "#f0f0f0",
+                fontSize: "18px",
+                cursor: "pointer",
+              }}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              style={{
+                padding: "0 12px",
+                borderRadius: "18px",
+                border: "none",
+                background: "#f0f0f0",
+                fontSize: "14px",
+                cursor: "pointer",
+              }}
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.min(4, z + 0.5))}
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "none",
+                background: "#f0f0f0",
+                fontSize: "18px",
+                cursor: "pointer",
+              }}
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setEnlargedImage(null)}
+            style={{
+              position: "fixed",
+              top: "20px",
+              right: "20px",
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              border: "none",
+              background: "white",
+              fontSize: "20px",
+              cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </main>
   );
 }

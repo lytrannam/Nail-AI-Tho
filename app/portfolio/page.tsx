@@ -15,6 +15,7 @@ export default function PortfolioPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirmedOwnWork, setConfirmedOwnWork] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
 
   useEffect(() => {
@@ -43,6 +44,12 @@ export default function PortfolioPage() {
     const files = event.target.files;
     if (!files || files.length === 0 || !userId) return;
 
+    if (!confirmedOwnWork) {
+      alert("Vui lòng tick xác nhận đây là ảnh thật bạn đã tự làm trước khi tải lên.");
+      if (fileInput.current) fileInput.current.value = "";
+      return;
+    }
+
     setUploading(true);
     setMessage("");
 
@@ -65,28 +72,11 @@ export default function PortfolioPage() {
         const res = await fetch("/api/portfolio-tag", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl }),
+          body: JSON.stringify({ imageUrl, userId }),
         });
 
         const data = await res.json();
-        if (data.error) continue;
-
-        const tags = data.tags || {};
-
-        const { error: insertError } = await supabase.from("portfolio").insert({
-          user_id: userId,
-          image_url: imageUrl,
-          skin_tone_group: tags.skin_tone_group ?? null,
-          undertone: tags.undertone ?? null,
-          shape: tags.shape ?? null,
-          style: tags.style ?? null,
-          color: tags.color ?? null,
-          material: tags.material ?? null,
-          difficulty: tags.difficulty ?? null,
-        });
-
-        if (!insertError) successCount++;
-        else console.error(insertError);
+        if (!data.error) successCount++;
       } catch (error) {
         console.error(error);
       }
@@ -114,14 +104,68 @@ export default function PortfolioPage() {
         dùng khi gợi ý cho khách sau này.
       </p>
 
+      <div
+        style={{
+          background: "#f0f7ff",
+          border: "1px solid #cfe3ff",
+          borderRadius: "12px",
+          padding: "18px 20px",
+          margin: "20px 0",
+          maxWidth: "600px",
+          fontSize: "14px",
+          lineHeight: "1.7",
+        }}
+      >
+        <strong>Cách dùng nhanh:</strong>
+        <ol style={{ margin: "8px 0 0", paddingLeft: "20px" }}>
+          <li>Tick vào ô xác nhận bên dưới.</li>
+          <li>
+            Bấm ô chọn ảnh, chọn <strong>nhiều ảnh cùng lúc</strong> (giữ Ctrl
+            hoặc Shift khi chọn trên máy tính, hoặc chọn nhiều ảnh trên điện
+            thoại).
+          </li>
+          <li>
+            Đợi vài giây để AI tự phân tích và gắn tag từng ảnh — không cần
+            làm gì thêm.
+          </li>
+          <li>
+            Muốn tải 500 ảnh, cứ chọn 20–50 ảnh mỗi lần, lặp lại nhiều lần cho
+            đến khi đủ — không giới hạn số lần tải.
+          </li>
+        </ol>
+      </div>
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "8px",
+          marginTop: "20px",
+          maxWidth: "500px",
+          fontSize: "14px",
+          lineHeight: "1.5",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={confirmedOwnWork}
+          onChange={(e) => setConfirmedOwnWork(e.target.checked)}
+          style={{ marginTop: "3px" }}
+        />
+        <span>
+          Tôi xác nhận đây là ảnh thật tôi đã tự làm cho khách, không phải ảnh
+          sưu tầm từ nguồn khác.
+        </span>
+      </label>
+
       <input
         ref={fileInput}
         type="file"
         accept="image/*"
         multiple
         onChange={handleFiles}
-        disabled={uploading}
-        style={{ marginTop: "20px" }}
+        disabled={uploading || !confirmedOwnWork}
+        style={{ marginTop: "14px" }}
       />
 
       {uploading && <p>Đang tải lên và gắn tag, vui lòng đợi...</p>}

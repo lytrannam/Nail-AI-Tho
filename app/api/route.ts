@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 - Mỗi màu chỉ giải thích 1 câu ngắn.
 
 3. Nail design:
-- Đề xuất đúng 3 mẫu design.
+- Đề xuất đúng 4 mẫu design.
 - Với mỗi mẫu, ghi:
   • Tên design
   • Màu chính
@@ -62,7 +62,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
 
     const rawText = response.output_text;
 
-    // Tách dòng TAGS ẩn ra khỏi nội dung hiển thị cho khách
     const tagsMatch = rawText.match(
       /TAGS:\s*skin_tone_group=(\d+);\s*undertone=(\w+)/i
     );
@@ -71,13 +70,11 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
     const skinToneGroup = tagsMatch ? Number(tagsMatch[1]) : null;
     const undertone = tagsMatch ? tagsMatch[2].toLowerCase() : null;
 
-    console.log("DEBUG customerId:", customerId);
-    console.log("DEBUG tagsMatch:", tagsMatch ? tagsMatch[0] : "KHONG TIM THAY DONG TAGS");
-    console.log("DEBUG skinToneGroup:", skinToneGroup, "undertone:", undertone);
+    // Luôn hiển thị đúng 4 ảnh: tối đa 2 ảnh thật (portfolio của thợ) + phần còn
+    // lại là ảnh AI tạo mới, để luôn có tổng cộng 4 ảnh cho khách chọn.
+    const REAL_SLOTS = 2;
+    const TOTAL_SLOTS = 4;
 
-    // Tìm ảnh portfolio thật của salon này, ưu tiên khớp tông da/undertone
-    // Dùng supabaseAdmin (service role) vì route này chạy trên server,
-    // không mang theo phiên đăng nhập — giống cách customer-by-token đang làm.
     let realMatches: { image_url: string; style: string | null }[] = [];
 
     if (customerId) {
@@ -88,8 +85,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
         .single();
 
       const salonUserId = customerRow?.user_id;
-      console.log("DEBUG customerRow:", customerRow);
-      console.log("DEBUG salonUserId:", salonUserId);
 
       if (salonUserId) {
         // Vòng 1: khớp cả tông da và undertone
@@ -102,13 +97,13 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
             .lte("skin_tone_group", skinToneGroup + 1)
             .eq("undertone", undertone)
             .order("created_at", { ascending: false })
-            .limit(3);
+            .limit(REAL_SLOTS);
 
           if (data) realMatches = data;
         }
 
-        // Vòng 2: nếu chưa đủ 3, nới lỏng chỉ theo tông da
-        if (realMatches.length < 3 && skinToneGroup) {
+        // Vòng 2: nếu chưa đủ, nới lỏng chỉ theo tông da
+        if (realMatches.length < REAL_SLOTS && skinToneGroup) {
           const { data } = await supabaseAdmin
             .from("portfolio")
             .select("image_url, style")
@@ -116,7 +111,7 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
             .gte("skin_tone_group", skinToneGroup - 1)
             .lte("skin_tone_group", skinToneGroup + 1)
             .order("created_at", { ascending: false })
-            .limit(3 - realMatches.length);
+            .limit(REAL_SLOTS - realMatches.length);
 
           if (data) {
             const existingUrls = new Set(realMatches.map((m) => m.image_url));
@@ -134,18 +129,15 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
             .select("image_url, style")
             .eq("user_id", salonUserId)
             .order("created_at", { ascending: false })
-            .limit(3);
+            .limit(REAL_SLOTS);
 
           if (data) realMatches = data;
         }
       }
     }
 
-    console.log("DEBUG realMatches.length sau ca 3 vong:", realMatches.length);
-
-    // Tối đa 5 ảnh hiển thị (5-Finger Preview): ưu tiên ảnh thật, còn lại mới tạo bằng AI
-    // aiSlotsNeeded luôn <= 3 nên chi phí AI generate KHÔNG tăng so với trước đây
-    const aiSlotsNeeded = Math.max(0, Math.min(3, 5 - realMatches.length));
+    // Số ảnh AI cần tạo = phần còn thiếu để đủ tổng 4 ảnh
+    const aiSlotsNeeded = TOTAL_SLOTS - realMatches.length;
 
     const aiImages = await Promise.all(
       Array.from({ length: aiSlotsNeeded }).map(async (_, i) => {

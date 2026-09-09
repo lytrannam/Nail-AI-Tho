@@ -140,8 +140,14 @@ function PageContent() {
 
       if (customerId && data.designImages?.length > 0) {
         const { uploadImage } = await import("../lib/uploadImage");
+        const sources: ("real" | "ai")[] =
+          data.designSources || data.designImages.map(() => "ai" as const);
+
+        // Ảnh "real" đã là link có sẵn (portfolio thật) — chỉ upload ảnh "ai" (dạng base64)
         const uploadedUrls = await Promise.all(
-          data.designImages.map((img: string) => uploadImage(img))
+          data.designImages.map((img: string, idx: number) =>
+            sources[idx] === "real" ? Promise.resolve(img) : uploadImage(img)
+          )
         );
         const validUrls = uploadedUrls.filter((url) => url !== null);
 

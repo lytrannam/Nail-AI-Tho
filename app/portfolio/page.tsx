@@ -104,11 +104,28 @@ export default function PortfolioPage() {
         const res = await fetch("/api/portfolio-tag", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl, userId }),
+          body: JSON.stringify({ imageUrl }),
         });
 
         const data = await res.json();
-        if (!data.error) successCount++;
+        if (data.error) continue;
+
+        const tags = data.tags || {};
+
+        const { error: insertError } = await supabase.from("portfolio").insert({
+          user_id: userId,
+          image_url: imageUrl,
+          skin_tone_group: tags.skin_tone_group ?? null,
+          undertone: tags.undertone ?? null,
+          shape: tags.shape ?? null,
+          style: tags.style ?? null,
+          color: tags.color ?? null,
+          material: tags.material ?? null,
+          difficulty: tags.difficulty ?? null,
+        });
+
+        if (!insertError) successCount++;
+        else console.error(insertError);
       } catch (error) {
         console.error(error);
       }

@@ -75,8 +75,7 @@ function StaffLoginContent() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "Arial, sans-serif",
-        background: "#fafafa",
+        fontFamily: "var(--font-body)",
         padding: "20px",
         position: "relative",
       }}
@@ -86,40 +85,38 @@ function StaffLoginContent() {
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
       </button>
 
-      <div style={{ fontSize: "48px", marginBottom: "10px" }}>💅</div>
-      <h1 style={{ marginBottom: "30px" }}>{t.staffLoginTitle}</h1>
+      <div style={{ fontSize: "48px", marginBottom: "12px" }}>💅</div>
+      <h1 style={{ marginBottom: "30px", fontSize: "24px" }}>{t.staffLoginTitle}</h1>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "16px",
-          marginBottom: "20px",
-        }}
-      >
+      <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
             style={{
               width: "50px",
               height: "60px",
-              border: "2px solid #333",
-              borderRadius: "10px",
+              border: `2px solid ${pin[i] ? "var(--accent)" : "var(--border)"}`,
+              borderRadius: "12px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "28px",
+              background: "var(--surface)",
+              color: "var(--accent)",
             }}
           >
             {pin[i] ? "●" : ""}
@@ -128,12 +125,12 @@ function StaffLoginContent() {
       </div>
 
       {error && (
-        <p style={{ color: "red", fontSize: "18px", marginBottom: "10px" }}>
+        <p style={{ color: "var(--accent-dark)", fontSize: "16px", marginBottom: "10px", fontWeight: 600 }}>
           {error}
         </p>
       )}
 
-      {loading && <p style={{ fontSize: "18px" }}>{t.checking}</p>}
+      {loading && <p style={{ fontSize: "16px", color: "var(--foreground-soft)" }}>{t.checking}</p>}
 
       <div
         style={{
@@ -149,12 +146,13 @@ function StaffLoginContent() {
             type="button"
             onClick={() => handleDigit(digit)}
             style={{
-              width: "80px",
-              height: "80px",
-              fontSize: "32px",
+              width: "78px",
+              height: "78px",
+              fontSize: "28px",
               borderRadius: "50%",
-              border: "1px solid #ccc",
-              background: "white",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--foreground)",
               cursor: "pointer",
             }}
           >
@@ -166,12 +164,13 @@ function StaffLoginContent() {
           type="button"
           onClick={() => handleDigit("0")}
           style={{
-            width: "80px",
-            height: "80px",
-            fontSize: "32px",
+            width: "78px",
+            height: "78px",
+            fontSize: "28px",
             borderRadius: "50%",
-            border: "1px solid #ccc",
-            background: "white",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
             cursor: "pointer",
           }}
         >
@@ -181,12 +180,13 @@ function StaffLoginContent() {
           type="button"
           onClick={handleClear}
           style={{
-            width: "80px",
-            height: "80px",
-            fontSize: "20px",
+            width: "78px",
+            height: "78px",
+            fontSize: "16px",
             borderRadius: "50%",
-            border: "1px solid #ccc",
-            background: "#eee",
+            border: "1px solid var(--border)",
+            background: "var(--accent-soft)",
+            color: "var(--accent-dark)",
             cursor: "pointer",
           }}
         >

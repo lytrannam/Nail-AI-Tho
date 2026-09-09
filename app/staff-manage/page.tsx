@@ -98,23 +98,37 @@ export default function StaffManagePage() {
   };
 
   if (loading) {
-    return <main style={{ padding: "30px" }}>{t.smLoading}</main>;
+    return (
+      <main style={{ padding: "30px", color: "var(--foreground-soft)" }}>
+        {t.smLoading}
+      </main>
+    );
   }
 
   return (
-    <main style={{ padding: "30px", fontFamily: "Arial, sans-serif", position: "relative" }}>
+    <main
+      style={{
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
+        position: "relative",
+        maxWidth: "700px",
+        margin: "0 auto",
+      }}
+    >
       <button
         type="button"
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
@@ -125,74 +139,119 @@ export default function StaffManagePage() {
         onClick={() => {
           window.location.href = "/customers";
         }}
-        style={{ padding: "10px 16px", marginBottom: "20px", cursor: "pointer" }}
+        style={{
+          padding: "10px 18px",
+          marginBottom: "20px",
+          cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
+        }}
       >
         {t.smBack}
       </button>
 
-      <h1>{t.smTitle}</h1>
+      <h1 style={{ fontSize: "28px" }}>{t.smTitle}</h1>
 
       <div
         style={{
-          background: "white",
-          padding: "20px",
-          borderRadius: "16px",
-          marginTop: "20px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          padding: "22px",
+          borderRadius: "18px",
+          marginTop: "22px",
           maxWidth: "400px",
         }}
       >
-        <h3>{t.smAddNewTitle}</h3>
+        <h3 style={{ fontSize: "17px", marginBottom: "12px" }}>{t.smAddNewTitle}</h3>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t.smNamePlaceholder}
-          style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            marginBottom: "10px",
+            borderRadius: "10px",
+            border: "1px solid var(--border)",
+            boxSizing: "border-box",
+          }}
         />
         <input
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
           placeholder={t.smPinPlaceholder}
           inputMode="numeric"
-          style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            marginBottom: "10px",
+            borderRadius: "10px",
+            border: "1px solid var(--border)",
+            boxSizing: "border-box",
+          }}
         />
         <button
           type="button"
           onClick={addStaff}
-          style={{ padding: "10px 16px", cursor: "pointer", fontWeight: "bold" }}
+          style={{
+            padding: "10px 18px",
+            cursor: "pointer",
+            fontWeight: 600,
+            borderRadius: "999px",
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
+          }}
         >
           {t.smAddButton}
         </button>
       </div>
 
-      <div style={{ marginTop: "30px" }}>
-        <h3>{t.smListTitle}</h3>
+      <div style={{ marginTop: "32px" }}>
+        <h3 style={{ fontSize: "18px" }}>{t.smListTitle}</h3>
         {staffList.length === 0 ? (
-          <p>{t.smNoStaff}</p>
+          <p style={{ color: "var(--foreground-soft)" }}>{t.smNoStaff}</p>
         ) : (
           staffList.map((staff) => (
             <div
               key={staff.id}
               style={{
-                background: "white",
-                padding: "15px",
-                borderRadius: "12px",
-                marginBottom: "10px",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                padding: "16px 18px",
+                borderRadius: "16px",
+                marginTop: "10px",
                 maxWidth: "400px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                opacity: staff.is_active ? 1 : 0.5,
+                opacity: staff.is_active ? 1 : 0.55,
               }}
             >
               <div>
-                <strong>{staff.name}</strong>
-                <div>{t.smPinLabel.replace("{pin}", staff.pin_code)}</div>
-                <div>{staff.is_active ? t.smActiveStatus : t.smInactiveStatus}</div>
+                <strong style={{ color: "var(--foreground)" }}>{staff.name}</strong>
+                <div style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>
+                  {t.smPinLabel.replace("{pin}", staff.pin_code)}
+                </div>
+                <div style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>
+                  {staff.is_active ? t.smActiveStatus : t.smInactiveStatus}
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => toggleActive(staff)}
-                style={{ padding: "8px 12px", cursor: "pointer" }}
+                style={{
+                  padding: "8px 14px",
+                  cursor: "pointer",
+                  borderRadius: "999px",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--foreground)",
+                  fontSize: "13px",
+                }}
               >
                 {staff.is_active ? t.smMarkInactive : t.smReactivate}
               </button>

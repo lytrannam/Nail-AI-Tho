@@ -100,44 +100,66 @@ function CustomerDetailsContent() {
   };
 
   return (
-    <main style={{ padding: "40px 20px", fontFamily: "Arial", position: "relative" }}>
+    <main
+      style={{
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
+        position: "relative",
+        maxWidth: "700px",
+        margin: "0 auto",
+      }}
+    >
       <button
         type="button"
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
       </button>
 
-      <h1>{t.cdTitle}</h1>
+      <h1 style={{ fontSize: "28px" }}>{t.cdTitle}</h1>
 
       {!customer ? (
-        <p>{t.cdLoading}</p>
+        <p style={{ color: "var(--foreground-soft)", marginTop: "16px" }}>{t.cdLoading}</p>
       ) : (
         <div>
-          <h2>{customer.name}</h2>
+          <h2 style={{ fontSize: "22px", marginTop: "20px" }}>{customer.name}</h2>
           {lastVisit && (
-            <p>
+            <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>
               {t.cdLastVisit}
               {new Date(lastVisit).toLocaleDateString(lang === "vi" ? "vi-VN" : "en-US")}
             </p>
           )}
-          <p>
+          <p style={{ color: "var(--foreground-soft)" }}>
             {t.cdPhone}
             {customer.phone || t.cdNoPhone}
           </p>
-          <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-            <h3>{t.cdSelectedDesignTitle}</h3>
-            <p>{selectedDesign || t.cdNoDesignSelected}</p>
+
+          <div
+            style={{
+              marginTop: "22px",
+              marginBottom: "22px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "18px",
+              padding: "20px",
+            }}
+          >
+            <h3 style={{ fontSize: "17px" }}>{t.cdSelectedDesignTitle}</h3>
+            <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>
+              {selectedDesign || t.cdNoDesignSelected}
+            </p>
             {selectedDesignImage && (
               <img
                 src={selectedDesignImage}
@@ -146,44 +168,55 @@ function CustomerDetailsContent() {
                   width: "220px",
                   maxWidth: "100%",
                   marginTop: "12px",
-                  borderRadius: "12px",
+                  borderRadius: "14px",
+                  border: "1px solid var(--border)",
                 }}
               />
             )}
           </div>
 
-          <button
-            type="button"
-            disabled={!sessionToken}
-            onClick={() => {
-              window.location.href = `/?token=${sessionToken}`;
-            }}
-            style={{
-              padding: "12px 18px",
-              marginTop: "20px",
-              cursor: "pointer",
-            }}
-          >
-            {t.cdOpenAiButton}
-          </button>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              disabled={!sessionToken}
+              onClick={() => {
+                window.location.href = `/?token=${sessionToken}`;
+              }}
+              style={{
+                padding: "14px 22px",
+                cursor: "pointer",
+                borderRadius: "999px",
+                border: "none",
+                background: "var(--accent)",
+                color: "white",
+                fontWeight: 600,
+              }}
+            >
+              {t.cdOpenAiButton}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = `/appointments?customerId=${customerId}`;
-            }}
-            style={{
-              padding: "12px 18px",
-              marginTop: "10px",
-              cursor: "pointer",
-            }}
-          >
-            {t.cdBookButton}
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = `/appointments?customerId=${customerId}`;
+              }}
+              style={{
+                padding: "14px 22px",
+                cursor: "pointer",
+                borderRadius: "999px",
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+                color: "var(--foreground)",
+                fontWeight: 600,
+              }}
+            >
+              {t.cdBookButton}
+            </button>
+          </div>
 
-          <h3>{t.cdHistoryTitle}</h3>
+          <h3 style={{ fontSize: "18px", marginTop: "32px" }}>{t.cdHistoryTitle}</h3>
           {nailHistory && (
-            <p style={{ whiteSpace: "pre-line" }}>{nailHistory}</p>
+            <p style={{ whiteSpace: "pre-line", color: "var(--foreground)" }}>{nailHistory}</p>
           )}
 
           <textarea
@@ -194,20 +227,26 @@ function CustomerDetailsContent() {
             style={{
               width: "100%",
               maxWidth: "600px",
-              padding: "12px",
+              padding: "14px",
               boxSizing: "border-box",
+              borderRadius: "12px",
+              border: "1px solid var(--border)",
             }}
           />
 
-          <div style={{ marginTop: "12px" }}>
+          <div style={{ marginTop: "14px" }}>
             <button
               type="button"
               onClick={saveNailHistory}
               disabled={saving}
               style={{
-                padding: "12px 20px",
+                padding: "12px 22px",
                 cursor: "pointer",
-                fontWeight: "bold",
+                fontWeight: 600,
+                borderRadius: "999px",
+                border: "none",
+                background: "var(--accent)",
+                color: "white",
               }}
             >
               {saving ? t.cdSaving : t.cdSaveHistoryButton}

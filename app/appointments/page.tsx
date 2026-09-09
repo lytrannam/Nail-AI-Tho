@@ -125,7 +125,6 @@ function AppointmentsContent() {
       return;
     }
 
-    // New booking = a new visit → allow a fresh trial, generate a new access token
     const newToken =
       Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -168,35 +167,47 @@ function AppointmentsContent() {
   };
 
   if (loading) {
-    return <main style={{ padding: "30px" }}>{t.apptLoading}</main>;
+    return (
+      <main style={{ padding: "40px 20px", color: "var(--foreground-soft)" }}>
+        {t.apptLoading}
+      </main>
+    );
   }
 
   return (
     <main
-      style={{ padding: "30px", fontFamily: "Arial, sans-serif", position: "relative" }}
+      style={{
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
+        position: "relative",
+        maxWidth: "700px",
+        margin: "0 auto",
+      }}
     >
       <button
         type="button"
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
       </button>
 
-      <h1>{t.apptTitle}</h1>
+      <h1 style={{ fontSize: "28px" }}>{t.apptTitle}</h1>
       {customer && (
-        <p>
+        <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>
           {t.apptBookingFor}
-          <strong>{customer.name}</strong>
+          <strong style={{ color: "var(--foreground)" }}>{customer.name}</strong>
           {customer.phone ? ` — ${customer.phone}` : ""}
         </p>
       )}
@@ -204,63 +215,99 @@ function AppointmentsContent() {
       {customerId && (
         <div
           style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "16px",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            padding: "22px",
+            borderRadius: "18px",
+            marginTop: "22px",
             marginBottom: "25px",
-            maxWidth: "500px",
           }}
         >
-          <h3>{t.apptNewTitle}</h3>
+          <h3 style={{ fontSize: "18px", marginBottom: "14px" }}>{t.apptNewTitle}</h3>
 
-          <label style={{ display: "block", marginBottom: "10px" }}>
+          <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", color: "var(--foreground)" }}>
             {t.apptDateLabel}
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginTop: "6px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                boxSizing: "border-box",
+              }}
             />
           </label>
 
-          <label style={{ display: "block", marginBottom: "10px" }}>
+          <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", color: "var(--foreground)" }}>
             {t.apptTimeLabel}
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginTop: "6px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                boxSizing: "border-box",
+              }}
             />
           </label>
 
-          <label style={{ display: "block", marginBottom: "10px" }}>
+          <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", color: "var(--foreground)" }}>
             {t.apptServiceLabel}
             <input
               type="text"
               value={service}
               onChange={(e) => setService(e.target.value)}
               placeholder={t.apptServicePlaceholder}
-              style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginTop: "6px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                boxSizing: "border-box",
+              }}
             />
           </label>
-          <label style={{ display: "block", marginBottom: "10px" }}>
+          <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", color: "var(--foreground)" }}>
             {t.apptPriceLabel}
             <input
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder={t.apptPricePlaceholder}
-              style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginTop: "6px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                boxSizing: "border-box",
+              }}
             />
           </label>
 
-          <label style={{ display: "block", marginBottom: "10px" }}>
+          <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", color: "var(--foreground)" }}>
             {t.apptNotesLabel}
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                marginTop: "6px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                boxSizing: "border-box",
+              }}
             />
           </label>
 
@@ -268,7 +315,15 @@ function AppointmentsContent() {
             type="button"
             onClick={addAppointment}
             disabled={saving}
-            style={{ padding: "12px 20px", cursor: "pointer", fontWeight: "bold" }}
+            style={{
+              padding: "12px 22px",
+              cursor: "pointer",
+              fontWeight: 600,
+              borderRadius: "999px",
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
+            }}
           >
             {saving ? t.apptSaving : t.apptSaveButton}
           </button>
@@ -276,25 +331,30 @@ function AppointmentsContent() {
       )}
 
       {appointments.length === 0 ? (
-        <p>{t.apptNoAppointments}</p>
+        <p style={{ color: "var(--foreground-soft)" }}>{t.apptNoAppointments}</p>
       ) : (
         appointments.map((appointment) => (
           <div
             key={appointment.id}
             style={{
-              padding: "15px",
+              padding: "16px 18px",
               marginBottom: "12px",
-              border: "1px solid #ddd",
-              borderRadius: "10px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
             }}
           >
-            <strong>{appointment.service || t.apptDefaultService}</strong>
-            <p>
+            <strong style={{ color: "var(--foreground)" }}>
+              {appointment.service || t.apptDefaultService}
+            </strong>
+            <p style={{ color: "var(--foreground-soft)", margin: "4px 0" }}>
               {new Date(appointment.appointments_at).toLocaleString(
                 lang === "vi" ? "vi-VN" : "en-US"
               )}
             </p>
-            {appointment.notes && <p>{appointment.notes}</p>}
+            {appointment.notes && (
+              <p style={{ color: "var(--foreground-soft)" }}>{appointment.notes}</p>
+            )}
           </div>
         ))
       )}

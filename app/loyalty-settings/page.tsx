@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
 
 export default function LoyaltySettingsPage() {
   const [enabled, setEnabled] = useState(false);
@@ -10,6 +11,9 @@ export default function LoyaltySettingsPage() {
   const [discountPercent, setDiscountPercent] = useState(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lang, setLang] = useState<Language>("vi");
+
+  const t = translations[lang];
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -61,38 +65,87 @@ export default function LoyaltySettingsPage() {
 
     if (error) {
       console.error(error);
-      alert("Không thể lưu cài đặt.");
+      alert(t.lsSaveError);
       return;
     }
 
-    alert("Đã lưu cài đặt điểm thưởng.");
+    alert(t.lsSaveSuccess);
   };
 
   if (loading) {
-    return <main style={{ padding: "30px" }}>Đang tải...</main>;
+    return (
+      <main style={{ padding: "40px 20px", color: "var(--foreground-soft)" }}>
+        {t.lsLoading}
+      </main>
+    );
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    marginTop: "6px",
+    borderRadius: "10px",
+    border: "1px solid var(--border)",
+    boxSizing: "border-box",
+  };
+
   return (
-    <main style={{ padding: "30px", fontFamily: "Arial, sans-serif" }}>
+    <main
+      style={{
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
+        position: "relative",
+        maxWidth: "550px",
+        margin: "0 auto",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
+          cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       <button
         type="button"
         onClick={() => {
           window.location.href = "/customers";
         }}
-        style={{ padding: "10px 16px", marginBottom: "20px", cursor: "pointer" }}
+        style={{
+          padding: "10px 18px",
+          marginBottom: "20px",
+          cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
+        }}
       >
-        ← Quay lại danh sách khách
+        {t.smBack}
       </button>
 
-      <h1>Cài đặt điểm thưởng</h1>
+      <h1 style={{ fontSize: "26px" }}>{t.lsTitle}</h1>
 
       <div
         style={{
-          background: "white",
-          padding: "20px",
-          borderRadius: "16px",
-          marginTop: "20px",
-          maxWidth: "450px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          padding: "24px",
+          borderRadius: "20px",
+          marginTop: "22px",
         }}
       >
         <label style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
@@ -100,44 +153,44 @@ export default function LoyaltySettingsPage() {
             type="checkbox"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
-            style={{ width: "20px", height: "20px" }}
+            style={{ width: "20px", height: "20px", accentColor: "var(--accent)" }}
           />
-          <span style={{ fontWeight: "bold" }}>Bật chương trình điểm thưởng</span>
+          <span style={{ fontWeight: 600, color: "var(--foreground)" }}>{t.lsEnableLabel}</span>
         </label>
 
         {enabled && (
           <>
-            <p style={{ color: "#666", marginBottom: "15px" }}>
-              Khách đạt <strong>1 trong 2</strong> điều kiện dưới đây sẽ được giảm giá:
+            <p style={{ color: "var(--foreground-soft)", marginBottom: "16px", fontSize: "14px" }}>
+              {t.lsConditionNote}
             </p>
 
-            <label style={{ display: "block", marginBottom: "12px" }}>
-              Số lần ghé cần đạt
+            <label style={{ display: "block", marginBottom: "14px", fontSize: "14px", color: "var(--foreground)" }}>
+              {t.lsVisitsLabel}
               <input
                 type="number"
                 value={visitsRequired}
                 onChange={(e) => setVisitsRequired(Number(e.target.value))}
-                style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+                style={inputStyle}
               />
             </label>
 
-            <label style={{ display: "block", marginBottom: "12px" }}>
-              Hoặc tổng chi tiêu cần đạt ($)
+            <label style={{ display: "block", marginBottom: "14px", fontSize: "14px", color: "var(--foreground)" }}>
+              {t.lsAmountLabel}
               <input
                 type="number"
                 value={amountRequired}
                 onChange={(e) => setAmountRequired(Number(e.target.value))}
-                style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+                style={inputStyle}
               />
             </label>
 
-            <label style={{ display: "block", marginBottom: "12px" }}>
-              Phần trăm giảm giá (%)
+            <label style={{ display: "block", marginBottom: "14px", fontSize: "14px", color: "var(--foreground)" }}>
+              {t.lsDiscountLabel}
               <input
                 type="number"
                 value={discountPercent}
                 onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                style={{ width: "100%", padding: "10px", marginTop: "4px" }}
+                style={inputStyle}
               />
             </label>
           </>
@@ -148,13 +201,17 @@ export default function LoyaltySettingsPage() {
           onClick={saveSettings}
           disabled={saving}
           style={{
-            padding: "12px 20px",
+            padding: "12px 22px",
             cursor: "pointer",
-            fontWeight: "bold",
+            fontWeight: 600,
             marginTop: "10px",
+            borderRadius: "999px",
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
           }}
         >
-          {saving ? "Đang lưu..." : "Lưu cài đặt"}
+          {saving ? t.lsSaving : t.lsSaveButton}
         </button>
       </div>
     </main>

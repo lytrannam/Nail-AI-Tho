@@ -38,10 +38,12 @@ export default function StaffQrPage() {
   return (
     <main
       style={{
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
         textAlign: "center",
         position: "relative",
+        maxWidth: "600px",
+        margin: "0 auto",
       }}
     >
       <button
@@ -49,13 +51,15 @@ export default function StaffQrPage() {
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
@@ -67,45 +71,71 @@ export default function StaffQrPage() {
           window.location.href = "/customers";
         }}
         style={{
-          padding: "10px 16px",
+          padding: "10px 18px",
           marginBottom: "20px",
           cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         {t.smBack}
       </button>
 
-      <h1>{t.sqTitle}</h1>
-      <p style={{ color: "#c0392b", fontWeight: "bold" }}>{t.sqWarning}</p>
+      <h1 style={{ fontSize: "26px" }}>{t.sqTitle}</h1>
+      <p
+        style={{
+          color: "var(--accent-dark)",
+          fontWeight: 600,
+          marginTop: "10px",
+          fontSize: "14px",
+        }}
+      >
+        {t.sqWarning}
+      </p>
 
       <div
         ref={qrRef}
         style={{
           display: "inline-block",
-          padding: "20px",
-          background: "white",
-          borderRadius: "16px",
-          marginTop: "20px",
+          padding: "24px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "20px",
+          marginTop: "22px",
         }}
       >
         {staffUrl && <QRCodeCanvas value={staffUrl} size={220} />}
       </div>
 
-      <div style={{ marginTop: "20px" }}>
+      <div style={{ marginTop: "22px" }}>
         <button
           type="button"
           onClick={downloadQr}
           style={{
-            padding: "12px 20px",
+            padding: "14px 24px",
             cursor: "pointer",
-            fontWeight: "bold",
+            fontWeight: 600,
+            borderRadius: "999px",
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
           }}
         >
           {t.sqDownloadButton}
         </button>
       </div>
 
-      <p style={{ marginTop: "20px", color: "#666", wordBreak: "break-all" }}>
+      <p
+        style={{
+          marginTop: "22px",
+          color: "var(--foreground-soft)",
+          wordBreak: "break-all",
+          fontSize: "13px",
+        }}
+      >
         {t.sqLinkLabel.replace("{url}", staffUrl)}
       </p>
     </main>

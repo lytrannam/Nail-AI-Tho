@@ -3,23 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
-
+import { translations, Language } from "../../lib/translations";
 
 export default function QrPage() {
   const qrRef = useRef<HTMLDivElement>(null);
-const [salonUrl, setSalonUrl] = useState("");
+  const [salonUrl, setSalonUrl] = useState("");
+  const [lang, setLang] = useState<Language>("vi");
 
-useEffect(() => {
-  const buildUrl = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      setSalonUrl(`${window.location.origin}/?salon=${user.id}`);
-    }
-  };
-  buildUrl();
-}, []);
+  const t = translations[lang];
+
+  useEffect(() => {
+    const buildUrl = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setSalonUrl(`${window.location.origin}/?salon=${user.id}`);
+      }
+    };
+    buildUrl();
+  }, []);
 
   const downloadQr = () => {
     const canvas = qrRef.current?.querySelector("canvas");
@@ -35,57 +38,96 @@ useEffect(() => {
   return (
     <main
       style={{
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
         textAlign: "center",
+        position: "relative",
+        maxWidth: "600px",
+        margin: "0 auto",
       }}
     >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
+          cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       <button
         type="button"
         onClick={() => {
           window.location.href = "/customers";
         }}
         style={{
-          padding: "10px 16px",
+          padding: "10px 18px",
           marginBottom: "20px",
           cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
-        ← Quay lại danh sách khách
+        {t.smBack}
       </button>
 
-      <h1>Mã QR cho tiệm</h1>
-      <p>In mã này ra và dán tại quầy để khách quét vào app.</p>
+      <h1 style={{ fontSize: "26px" }}>{t.qrTitle}</h1>
+      <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.qrSubtitle}</p>
 
       <div
         ref={qrRef}
         style={{
           display: "inline-block",
-          padding: "20px",
-          background: "white",
-          borderRadius: "16px",
-          marginTop: "20px",
+          padding: "24px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "20px",
+          marginTop: "22px",
         }}
       >
         <QRCodeCanvas value={salonUrl} size={220} />
       </div>
 
-      <div style={{ marginTop: "20px" }}>
+      <div style={{ marginTop: "22px" }}>
         <button
           type="button"
           onClick={downloadQr}
           style={{
-            padding: "12px 20px",
+            padding: "14px 24px",
             cursor: "pointer",
-            fontWeight: "bold",
+            fontWeight: 600,
+            borderRadius: "999px",
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
           }}
         >
-          ⬇️ Tải mã QR về
+          {t.sqDownloadButton}
         </button>
       </div>
 
-      <p style={{ marginTop: "20px", color: "#666" }}>
-        Link đang trỏ tới: {salonUrl}
+      <p
+        style={{
+          marginTop: "22px",
+          color: "var(--foreground-soft)",
+          wordBreak: "break-all",
+          fontSize: "13px",
+        }}
+      >
+        {t.sqLinkLabel.replace("{url}", salonUrl)}
       </p>
     </main>
   );

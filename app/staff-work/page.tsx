@@ -160,13 +160,15 @@ export default function StaffWorkPage() {
       onClick={() => setLang(lang === "en" ? "vi" : "en")}
       style={{
         position: "absolute",
-        top: "16px",
-        right: "16px",
-        padding: "8px 14px",
+        top: "20px",
+        right: "20px",
+        padding: "8px 16px",
         cursor: "pointer",
-        borderRadius: "8px",
-        border: "1px solid #ccc",
-        background: "white",
+        borderRadius: "999px",
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+        color: "var(--foreground)",
+        fontSize: "14px",
       }}
     >
       🌐 {t.switchLang}
@@ -175,7 +177,7 @@ export default function StaffWorkPage() {
 
   if (loading) {
     return (
-      <main style={{ padding: "40px", textAlign: "center", fontSize: "24px" }}>
+      <main style={{ padding: "40px", textAlign: "center", fontSize: "20px", color: "var(--foreground-soft)" }}>
         {t.swLoading}
       </main>
     );
@@ -190,11 +192,11 @@ export default function StaffWorkPage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "var(--font-body)",
         }}
       >
-        <div style={{ fontSize: "80px" }}>✅</div>
-        <h1 style={{ fontSize: "28px", textAlign: "center", padding: "0 20px" }}>
+        <div style={{ fontSize: "72px" }}>✅</div>
+        <h1 style={{ fontSize: "24px", textAlign: "center", padding: "0 20px", marginTop: "12px" }}>
           {t.staffSavedFor} {selectedItem?.customerName}
         </h1>
       </main>
@@ -207,13 +209,13 @@ export default function StaffWorkPage() {
         style={{
           minHeight: "100vh",
           padding: "20px",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "var(--font-body)",
           textAlign: "center",
           position: "relative",
         }}
       >
         <LangToggle />
-        <h2 style={{ fontSize: "26px" }}>
+        <h2 style={{ fontSize: "22px" }}>
           {t.staffTakePhotoFor} {selectedItem.customerName}
         </h2>
         <img
@@ -222,8 +224,9 @@ export default function StaffWorkPage() {
           style={{
             width: "100%",
             maxWidth: "400px",
-            borderRadius: "16px",
+            borderRadius: "18px",
             marginTop: "20px",
+            border: "1px solid var(--border)",
           }}
         />
         <div
@@ -231,7 +234,7 @@ export default function StaffWorkPage() {
             marginTop: "30px",
             display: "flex",
             flexDirection: "column",
-            gap: "16px",
+            gap: "14px",
             alignItems: "center",
           }}
         >
@@ -242,12 +245,12 @@ export default function StaffWorkPage() {
             style={{
               width: "100%",
               maxWidth: "400px",
-              padding: "22px",
-              fontSize: "22px",
-              fontWeight: "bold",
-              borderRadius: "16px",
+              padding: "20px",
+              fontSize: "20px",
+              fontWeight: 600,
+              borderRadius: "999px",
               border: "none",
-              background: "#2e7d32",
+              background: "var(--accent)",
               color: "white",
               cursor: "pointer",
             }}
@@ -260,11 +263,12 @@ export default function StaffWorkPage() {
             style={{
               width: "100%",
               maxWidth: "400px",
-              padding: "18px",
-              fontSize: "20px",
-              borderRadius: "16px",
-              border: "1px solid #999",
-              background: "white",
+              padding: "16px",
+              fontSize: "18px",
+              borderRadius: "999px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--foreground)",
               cursor: "pointer",
             }}
           >
@@ -284,7 +288,7 @@ export default function StaffWorkPage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: "var(--font-body)",
           padding: "20px",
           position: "relative",
         }}
@@ -298,20 +302,20 @@ export default function StaffWorkPage() {
           style={{ display: "none" }}
           onChange={handleImageChange}
         />
-        <h2 style={{ fontSize: "26px", marginBottom: "20px" }}>
+        <h2 style={{ fontSize: "22px", marginBottom: "20px" }}>
           {t.staffTakePhotoFor} {selectedItem.customerName}
         </h2>
 
         {(selectedItem.tryonImage || selectedItem.designImage) && (
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
-            <p style={{ fontSize: "16px", color: "#666" }}>{t.swDesignToMake}</p>
+            <p style={{ fontSize: "14px", color: "var(--foreground-soft)" }}>{t.swDesignToMake}</p>
             <img
               src={selectedItem.tryonImage || selectedItem.designImage || ""}
               alt={t.swDesignToMake}
               style={{
-                width: "220px",
-                borderRadius: "14px",
-                border: "2px solid #ddd",
+                width: "200px",
+                borderRadius: "16px",
+                border: "1px solid var(--border)",
               }}
             />
           </div>
@@ -321,15 +325,16 @@ export default function StaffWorkPage() {
           type="button"
           onClick={() => fileInput.current?.click()}
           style={{
-            width: "220px",
-            height: "220px",
+            width: "200px",
+            height: "200px",
             borderRadius: "50%",
             border: "none",
-            background: "#1976d2",
+            background: "var(--accent)",
             color: "white",
-            fontSize: "22px",
-            fontWeight: "bold",
+            fontSize: "20px",
+            fontWeight: 600,
             cursor: "pointer",
+            boxShadow: "0 8px 24px rgba(140,47,75,0.3)",
           }}
         >
           {t.staffTakePhotoButton}
@@ -339,11 +344,12 @@ export default function StaffWorkPage() {
           onClick={handleCancel}
           style={{
             marginTop: "30px",
-            padding: "14px 24px",
-            fontSize: "18px",
-            borderRadius: "12px",
-            border: "1px solid #999",
-            background: "white",
+            padding: "14px 26px",
+            fontSize: "16px",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
             cursor: "pointer",
           }}
         >
@@ -354,15 +360,9 @@ export default function StaffWorkPage() {
   }
 
   return (
-    <main style={{ padding: "20px", fontFamily: "Arial, sans-serif", position: "relative" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h1 style={{ fontSize: "24px" }}>
+    <main style={{ padding: "24px 20px", fontFamily: "var(--font-body)", maxWidth: "700px", margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ fontSize: "22px" }}>
           {t.staffWelcome}, {staffName}
         </h1>
         <div style={{ display: "flex", gap: "10px" }}>
@@ -372,9 +372,11 @@ export default function StaffWorkPage() {
             style={{
               padding: "8px 14px",
               cursor: "pointer",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              background: "white",
+              borderRadius: "999px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--foreground)",
+              fontSize: "13px",
             }}
           >
             🌐 {t.switchLang}
@@ -382,19 +384,27 @@ export default function StaffWorkPage() {
           <button
             type="button"
             onClick={handleLogout}
-            style={{ padding: "10px 16px", cursor: "pointer" }}
+            style={{
+              padding: "10px 16px",
+              cursor: "pointer",
+              borderRadius: "999px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--foreground)",
+              fontSize: "13px",
+            }}
           >
             {t.staffLogout}
           </button>
         </div>
       </div>
 
-      <h2 style={{ fontSize: "20px", marginTop: "20px" }}>
+      <h2 style={{ fontSize: "18px", marginTop: "24px", color: "var(--foreground-soft)" }}>
         {t.staffTodayCustomers}
       </h2>
 
       {items.length === 0 ? (
-        <p style={{ fontSize: "18px" }}>{t.staffNoCustomers}</p>
+        <p style={{ fontSize: "16px", color: "var(--foreground-soft)" }}>{t.staffNoCustomers}</p>
       ) : (
         items.map((item) => (
           <button
@@ -407,10 +417,10 @@ export default function StaffWorkPage() {
               gap: "16px",
               width: "100%",
               padding: "16px",
-              marginBottom: "14px",
-              borderRadius: "16px",
-              border: "1px solid #ddd",
-              background: "white",
+              marginTop: "12px",
+              borderRadius: "18px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
               cursor: "pointer",
               textAlign: "left",
             }}
@@ -420,8 +430,8 @@ export default function StaffWorkPage() {
                 src={item.tryonImage || item.designImage || ""}
                 alt={t.swNailDesignAlt}
                 style={{
-                  width: "70px",
-                  height: "70px",
+                  width: "64px",
+                  height: "64px",
                   borderRadius: "12px",
                   objectFit: "cover",
                 }}
@@ -429,18 +439,18 @@ export default function StaffWorkPage() {
             ) : (
               <div
                 style={{
-                  width: "70px",
-                  height: "70px",
+                  width: "64px",
+                  height: "64px",
                   borderRadius: "12px",
-                  background: "#eee",
+                  background: "var(--accent-soft)",
                 }}
               />
             )}
             <div>
-              <div style={{ fontSize: "22px", fontWeight: "bold" }}>
+              <div style={{ fontSize: "18px", fontWeight: 600, color: "var(--foreground)" }}>
                 {item.customerName}
               </div>
-              <div style={{ fontSize: "16px", color: "#666" }}>
+              <div style={{ fontSize: "14px", color: "var(--foreground-soft)" }}>
                 {item.service || t.swUnknownService}
               </div>
             </div>

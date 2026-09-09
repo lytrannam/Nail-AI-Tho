@@ -30,6 +30,7 @@ function sortPortfolio(items: PortfolioItem[]): PortfolioItem[] {
 export default function PortfolioPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [confirmedOwnWork, setConfirmedOwnWork] = useState(false);
@@ -51,9 +52,13 @@ export default function PortfolioPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
 
       setUserId(user.id);
+      setAuthChecked(true);
 
       const { data } = await supabase
         .from("portfolio")
@@ -141,6 +146,14 @@ export default function PortfolioPage() {
 
     setPortfolio((prev) => prev.filter((item) => item.id !== id));
   };
+
+  if (!authChecked) {
+    return (
+      <main style={{ padding: "40px 20px", fontFamily: "Arial, sans-serif" }}>
+        <p>Loading... / Đang tải...</p>
+      </main>
+    );
+  }
 
   return (
     <main

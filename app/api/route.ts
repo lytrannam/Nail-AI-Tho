@@ -10,8 +10,66 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Giới hạn số lần gọi AI theo địa chỉ mạng (IP), để tránh bị lạm dụng tốn tiền.
+async function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMinutes: number
+): Promise<boolean> {
+  const windowMs = windowMinutes * 60 * 1000;
+
+  const { data } = await supabaseAdmin
+    .from("api_rate_limits")
+    .select("count, window_start")
+    .eq("key", key)
+    .maybeSingle();
+
+  const now = Date.now();
+
+  if (!data || now - new Date(data.window_start).getTime() > windowMs) {
+    await supabaseAdmin.from("api_rate_limits").upsert({
+      key,
+      count: 1,
+      window_start: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  if (data.count >= maxRequests) {
+    return false;
+  }
+
+  await supabaseAdmin
+    .from("api_rate_limits")
+    .update({ count: data.count + 1 })
+    .eq("key", key);
+
+  return true;
+}
+
+function getClientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return "unknown";
+}
+
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // Tối đa 20 lần phân tích ảnh mỗi IP mỗi 24 giờ.
+    const allowed = await checkRateLimit(`analyze:${ip}`, 20, 1440);
+
+    if (!allowed) {
+      return Response.json(
+        {
+          error:
+            "Đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại vào ngày mai hoặc liên hệ tiệm để được hỗ trợ.",
+        },
+        { status: 429 }
+      );
+    }
+
     const { image, customerId } = await request.json();
 
     const response = await openai.responses.create({
@@ -70,8 +128,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
     const skinToneGroup = tagsMatch ? Number(tagsMatch[1]) : null;
     const undertone = tagsMatch ? tagsMatch[2].toLowerCase() : null;
 
-    // Luôn hiển thị đúng 4 ảnh: tối đa 2 ảnh thật (portfolio của thợ) + phần còn
-    // lại là ảnh AI tạo mới, để luôn có tổng cộng 4 ảnh cho khách chọn.
     const REAL_SLOTS = 2;
     const TOTAL_SLOTS = 4;
 
@@ -87,7 +143,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
       const salonUserId = customerRow?.user_id;
 
       if (salonUserId) {
-        // Vòng 1: khớp cả tông da và undertone
         if (skinToneGroup && undertone) {
           const { data } = await supabaseAdmin
             .from("portfolio")
@@ -102,7 +157,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
           if (data) realMatches = data;
         }
 
-        // Vòng 2: nếu chưa đủ, nới lỏng chỉ theo tông da
         if (realMatches.length < REAL_SLOTS && skinToneGroup) {
           const { data } = await supabaseAdmin
             .from("portfolio")
@@ -122,7 +176,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
           }
         }
 
-        // Vòng 3: nếu vẫn chưa có gì, lấy ảnh portfolio mới nhất bất kể tag
         if (realMatches.length === 0) {
           const { data } = await supabaseAdmin
             .from("portfolio")
@@ -136,7 +189,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
       }
     }
 
-    // Số ảnh AI cần tạo = phần còn thiếu để đủ tổng 4 ảnh
     const aiSlotsNeeded = TOTAL_SLOTS - realMatches.length;
 
     const aiImages = await Promise.all(

@@ -247,6 +247,20 @@ export default function CustomersPage() {
         >
           {t.custLoyalty}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/portfolio";
+          }}
+          style={{
+            padding: "10px 16px",
+            marginBottom: "10px",
+            marginLeft: "8px",
+            cursor: "pointer",
+          }}
+        >
+          🖼️ {t.custPortfolioNav}
+        </button>
         <div
           style={{
             background: "white",

@@ -109,7 +109,7 @@ export const translations = {
     custReminderSentSummary: "Reminder sent to {success}/{total} customers.",
     custReminderError: "Error: {error}",
     custReminderSentOne: "Reminder sent to {name}.",
-
+    custPortfolioNav: "Portfolio",
     // Appointments page
     apptLoading: "Loading appointments...",
     apptTitle: "Appointments",
@@ -285,6 +285,7 @@ export const translations = {
     custReminderSentSummary: "Đã gửi email nhắc cho {success}/{total} khách.",
     custReminderError: "Lỗi: {error}",
     custReminderSentOne: "Đã gửi email nhắc cho {name}.",
+        custPortfolioNav: "Portfolio",
 
     // Appointments page
     apptLoading: "Đang tải lịch hẹn...",

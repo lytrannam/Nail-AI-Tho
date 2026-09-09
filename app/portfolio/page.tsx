@@ -173,6 +173,7 @@ export default function PortfolioPage() {
       <div
         style={{
           background: "#f0f7ff",
+          color: "#1a1a1a",
           border: "1px solid #cfe3ff",
           borderRadius: "12px",
           padding: "18px 20px",

@@ -177,9 +177,11 @@ export default function PortfolioPage() {
   return (
     <main
       style={{
-        padding: "40px 20px",
-        fontFamily: "Arial, sans-serif",
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
         position: "relative",
+        maxWidth: "980px",
+        margin: "0 auto",
       }}
     >
       <button
@@ -187,29 +189,32 @@ export default function PortfolioPage() {
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
       </button>
 
-      <h1>{t.portfolioTitle}</h1>
-      <p>{t.portfolioSubtitle}</p>
+      <h1 style={{ fontSize: "30px" }}>{t.portfolioTitle}</h1>
+      <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.portfolioSubtitle}</p>
 
       <div
         style={{
-          background: "#f0f7ff",
-          color: "#1a1a1a",
-          border: "1px solid #cfe3ff",
-          borderRadius: "12px",
-          padding: "18px 20px",
-          margin: "20px 0",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          border: "1px solid var(--border)",
+          borderLeft: "4px solid var(--gold)",
+          borderRadius: "16px",
+          padding: "20px 22px",
+          margin: "22px 0",
           maxWidth: "600px",
           fontSize: "14px",
           lineHeight: "1.7",
@@ -228,39 +233,47 @@ export default function PortfolioPage() {
         style={{
           display: "flex",
           alignItems: "flex-start",
-          gap: "8px",
-          marginTop: "20px",
+          gap: "10px",
+          marginTop: "24px",
           maxWidth: "500px",
           fontSize: "14px",
           lineHeight: "1.5",
+          color: "var(--foreground)",
         }}
       >
         <input
           type="checkbox"
           checked={confirmedOwnWork}
           onChange={(e) => setConfirmedOwnWork(e.target.checked)}
-          style={{ marginTop: "3px" }}
+          style={{ marginTop: "3px", accentColor: "var(--accent)" }}
         />
         <span>{t.portfolioConfirmLabel}</span>
       </label>
 
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFiles}
-        disabled={uploading || !confirmedOwnWork}
-        style={{ marginTop: "14px" }}
-      />
+      <div style={{ marginTop: "16px" }}>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFiles}
+          disabled={uploading || !confirmedOwnWork}
+          style={{
+            padding: "10px 14px",
+            borderRadius: "10px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+          }}
+        />
+      </div>
 
-      {uploading && <p>{t.portfolioUploading}</p>}
-      {message && <p>{message}</p>}
+      {uploading && <p style={{ color: "var(--foreground-soft)" }}>{t.portfolioUploading}</p>}
+      {message && <p style={{ color: "var(--accent)", fontWeight: 600 }}>{message}</p>}
 
-      <h2 style={{ marginTop: "40px" }}>
+      <h2 style={{ marginTop: "44px", fontSize: "22px" }}>
         {t.portfolioSavedHeading} ({portfolio.length})
       </h2>
-      <p style={{ fontSize: "13px", color: "#888", marginTop: "-8px" }}>
+      <p style={{ fontSize: "13px", color: "var(--foreground-soft)", marginTop: "4px" }}>
         {t.portfolioSortNote}
       </p>
 
@@ -270,7 +283,17 @@ export default function PortfolioPage() {
 
         return (
           <div key={tone ?? "unknown"} style={{ marginTop: "28px" }}>
-            <h3 style={{ fontSize: "16px", marginBottom: "10px" }}>
+            <h3
+              style={{
+                fontSize: "16px",
+                marginBottom: "12px",
+                display: "inline-block",
+                padding: "4px 14px",
+                borderRadius: "999px",
+                background: "var(--accent-soft)",
+                color: "var(--accent-dark)",
+              }}
+            >
               {tone ? `${t.portfolioToneLabel} ${tone}` : t.portfolioUnknownTone}{" "}
               ({group.length})
             </h3>
@@ -285,9 +308,10 @@ export default function PortfolioPage() {
                 <div
                   key={item.id}
                   style={{
-                    border: "1px solid #ddd",
-                    borderRadius: "12px",
-                    padding: "8px",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "16px",
+                    padding: "10px",
                     position: "relative",
                   }}
                 >
@@ -295,13 +319,13 @@ export default function PortfolioPage() {
                     src={item.image_url}
                     alt="Portfolio"
                     onClick={() => { setEnlargedImage(item.image_url); setZoom(1); }}
-                    style={{ width: "100%", borderRadius: "8px", cursor: "pointer" }}
+                    style={{ width: "100%", borderRadius: "10px", cursor: "pointer" }}
                   />
-                  <div style={{ fontSize: "13px", marginTop: "6px" }}>
+                  <div style={{ fontSize: "13px", marginTop: "8px", color: "var(--foreground)" }}>
                     {item.style || "—"} {item.color ? `· ${item.color}` : ""}
                   </div>
                   {item.difficulty && (
-                    <div style={{ fontSize: "12px", color: "#888" }}>
+                    <div style={{ fontSize: "12px", color: "var(--foreground-soft)" }}>
                       {t.portfolioDifficultyLabel}: {difficultyLabel(item.difficulty)}
                     </div>
                   )}
@@ -309,15 +333,16 @@ export default function PortfolioPage() {
                     type="button"
                     onClick={() => handleDelete(item.id)}
                     style={{
-                      marginTop: "8px",
+                      marginTop: "10px",
                       width: "100%",
-                      padding: "6px",
+                      padding: "8px",
                       fontSize: "13px",
                       cursor: "pointer",
-                      background: "#fff0f0",
-                      border: "1px solid #f5c2c2",
-                      borderRadius: "6px",
-                      color: "#c0392b",
+                      background: "transparent",
+                      border: "1px solid var(--accent)",
+                      borderRadius: "999px",
+                      color: "var(--accent)",
+                      fontWeight: 600,
                     }}
                   >
                     {t.portfolioDeleteButton}

@@ -166,9 +166,8 @@ export default function CustomersPage() {
     <main
       style={{
         minHeight: "100vh",
-        padding: "40px 20px",
-        fontFamily: "Arial, sans-serif",
-        background: "#fafafa",
+        padding: "48px 20px",
+        fontFamily: "var(--font-body)",
         position: "relative",
       }}
     >
@@ -177,30 +176,37 @@ export default function CustomersPage() {
         onClick={() => setLang(lang === "en" ? "vi" : "en")}
         style={{
           position: "absolute",
-          top: "16px",
-          right: "16px",
-          padding: "8px 14px",
+          top: "20px",
+          right: "20px",
+          padding: "8px 16px",
           cursor: "pointer",
-          borderRadius: "8px",
-          border: "1px solid #ccc",
-          background: "white",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
         }}
       >
         🌐 {t.switchLang}
       </button>
 
-      <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-        <h1>{t.custPageTitle}</h1>
-        <p>{t.custPageSubtitle}</p>
+      <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+        <h1 style={{ fontSize: "30px" }}>{t.custPageTitle}</h1>
+        <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>{t.custPageSubtitle}</p>
         <button
           type="button"
           onClick={() => {
             window.location.href = "/stats";
           }}
           style={{
-            padding: "10px 16px",
+            padding: "10px 18px",
             marginBottom: "10px",
             cursor: "pointer",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
+            fontSize: "14px",
           }}
         >
           {t.custViewStats}
@@ -211,10 +217,15 @@ export default function CustomersPage() {
             window.location.href = "/staff-manage";
           }}
           style={{
-            padding: "10px 16px",
+            padding: "10px 18px",
             marginBottom: "10px",
             marginLeft: "8px",
             cursor: "pointer",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
+            fontSize: "14px",
           }}
         >
           {t.custManageStaff}
@@ -225,10 +236,15 @@ export default function CustomersPage() {
             window.location.href = "/staff-qr";
           }}
           style={{
-            padding: "10px 16px",
+            padding: "10px 18px",
             marginBottom: "10px",
             marginLeft: "8px",
             cursor: "pointer",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
+            fontSize: "14px",
           }}
         >
           {t.custStaffQr}
@@ -239,10 +255,15 @@ export default function CustomersPage() {
             window.location.href = "/loyalty-settings";
           }}
           style={{
-            padding: "10px 16px",
+            padding: "10px 18px",
             marginBottom: "10px",
             marginLeft: "8px",
             cursor: "pointer",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
+            fontSize: "14px",
           }}
         >
           {t.custLoyalty}
@@ -253,20 +274,26 @@ export default function CustomersPage() {
             window.location.href = "/portfolio";
           }}
           style={{
-            padding: "10px 16px",
+            padding: "10px 18px",
             marginBottom: "10px",
             marginLeft: "8px",
             cursor: "pointer",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
+            fontSize: "14px",
           }}
         >
           🖼️ {t.custPortfolioNav}
         </button>
         <div
           style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "16px",
-            marginTop: "25px",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            padding: "22px",
+            borderRadius: "18px",
+            marginTop: "28px",
           }}
         >
           <input
@@ -275,9 +302,11 @@ export default function CustomersPage() {
             placeholder={t.custNamePlaceholder}
             style={{
               width: "100%",
-              padding: "12px",
+              padding: "12px 14px",
               marginBottom: "12px",
               boxSizing: "border-box",
+              borderRadius: "10px",
+              border: "1px solid var(--border)",
             }}
           />
 
@@ -287,9 +316,11 @@ export default function CustomersPage() {
             placeholder={t.custPhonePlaceholder}
             style={{
               width: "100%",
-              padding: "12px",
+              padding: "12px 14px",
               marginBottom: "12px",
               boxSizing: "border-box",
+              borderRadius: "10px",
+              border: "1px solid var(--border)",
             }}
           />
 
@@ -299,9 +330,11 @@ export default function CustomersPage() {
             placeholder={t.custEmailPlaceholder}
             style={{
               width: "100%",
-              padding: "12px",
+              padding: "12px 14px",
               marginBottom: "12px",
               boxSizing: "border-box",
+              borderRadius: "10px",
+              border: "1px solid var(--border)",
             }}
           />
 
@@ -309,26 +342,30 @@ export default function CustomersPage() {
             type="button"
             onClick={addCustomer}
             style={{
-              padding: "12px 20px",
+              padding: "12px 22px",
               cursor: "pointer",
-              fontWeight: "bold",
+              fontWeight: 600,
+              borderRadius: "999px",
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
             }}
           >
             {t.custAddButton}
           </button>
         </div>
 
-        <div style={{ marginTop: "30px" }}>
-          <h2>{t.custListTitle}</h2>
-          <p>{t.custTotalLabel.replace("{n}", String(customers.length))}</p>
+        <div style={{ marginTop: "36px" }}>
+          <h2 style={{ fontSize: "22px" }}>{t.custListTitle}</h2>
+          <p style={{ color: "var(--foreground-soft)" }}>{t.custTotalLabel.replace("{n}", String(customers.length))}</p>
 
           <div
             onClick={() => setShowRemindersOnly(!showRemindersOnly)}
-            style={{ fontWeight: "bold", cursor: "pointer" }}
+            style={{ fontWeight: 600, cursor: "pointer", color: "var(--foreground)" }}
           >
             {t.custReminderLabel.replace("{n}", String(reminderCount))}
             {showRemindersOnly && (
-              <div style={{ fontWeight: "normal", fontSize: "0.9em" }}>
+              <div style={{ fontWeight: "normal", fontSize: "0.9em", color: "var(--foreground-soft)" }}>
                 {t.custFilteringNote}
               </div>
             )}
@@ -341,9 +378,13 @@ export default function CustomersPage() {
               disabled={sendingAll}
               style={{
                 marginTop: "10px",
-                padding: "10px 16px",
+                padding: "10px 18px",
                 cursor: "pointer",
-                fontWeight: "bold",
+                fontWeight: 600,
+                borderRadius: "999px",
+                border: "1px solid var(--gold)",
+                background: "transparent",
+                color: "var(--gold)",
               }}
             >
               {sendingAll
@@ -360,11 +401,12 @@ export default function CustomersPage() {
             style={{
               width: "100%",
               maxWidth: "400px",
-              padding: "10px",
-              marginTop: "10px",
+              padding: "10px 14px",
+              marginTop: "14px",
               marginBottom: "20px",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              borderRadius: "999px",
+              background: "var(--surface)",
             }}
           />
 
@@ -375,9 +417,10 @@ export default function CustomersPage() {
               <div
                 key={customer.id}
                 style={{
-                  background: "white",
-                  padding: "15px",
-                  borderRadius: "12px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  padding: "16px 18px",
+                  borderRadius: "16px",
                   marginBottom: "10px",
                 }}
               >
@@ -442,9 +485,15 @@ export default function CustomersPage() {
                     }}
                     style={{
                       marginTop: "8px",
-                      padding: "8px 14px",
+                      padding: "8px 16px",
                       cursor: "pointer",
-                      display: "block",
+                      display: "inline-block",
+                      borderRadius: "999px",
+                      border: "1px solid var(--accent)",
+                      background: "transparent",
+                      color: "var(--accent)",
+                      fontSize: "13px",
+                      fontWeight: 600,
                     }}
                   >
                     {t.custSendReminder}
@@ -461,7 +510,7 @@ export default function CustomersPage() {
                   {customer.last_visit &&
                     Date.now() - new Date(customer.last_visit).getTime() >
                       21 * 24 * 60 * 60 * 1000 && (
-                      <div>{t.custOverdueWarning}</div>
+                      <div style={{ color: "var(--accent-dark)", fontWeight: 600, marginTop: "4px" }}>{t.custOverdueWarning}</div>
                     )}
                 </div>
               </div>

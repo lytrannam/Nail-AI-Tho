@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
 
 function StaffLoginContent() {
   const searchParams = useSearchParams();
@@ -10,6 +11,9 @@ function StaffLoginContent() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lang, setLang] = useState<Language>("vi");
+
+  const t = translations[lang];
 
   const handleDigit = (digit: string) => {
     if (pin.length < 4) {
@@ -24,7 +28,7 @@ function StaffLoginContent() {
 
   const handleLogin = async (fullPin: string) => {
     if (!salonId) {
-      setError("Thiếu thông tin tiệm. Vui lòng quét lại mã QR.");
+      setError(t.missingSalonInfo);
       return;
     }
 
@@ -41,18 +45,17 @@ function StaffLoginContent() {
     setLoading(false);
 
     if (fetchError || !data) {
-      setError("Mã PIN không đúng.");
+      setError(t.pinIncorrect);
       setPin("");
       return;
     }
 
     if (!data.is_active) {
-      setError("Tài khoản đã bị khóa. Liên hệ chủ tiệm.");
+      setError(t.staffLocked);
       setPin("");
       return;
     }
 
-    // Lưu thông tin thợ vào trình duyệt để dùng ở trang tiếp theo
     sessionStorage.setItem("staff_id", String(data.id));
     sessionStorage.setItem("staff_name", data.name);
     sessionStorage.setItem("salon_id", salonId);
@@ -60,7 +63,6 @@ function StaffLoginContent() {
     window.location.href = "/staff-work";
   };
 
-  // Tự động đăng nhập khi đủ 4 số
   if (pin.length === 4 && !loading) {
     handleLogin(pin);
   }
@@ -76,10 +78,28 @@ function StaffLoginContent() {
         fontFamily: "Arial, sans-serif",
         background: "#fafafa",
         padding: "20px",
+        position: "relative",
       }}
     >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       <div style={{ fontSize: "48px", marginBottom: "10px" }}>💅</div>
-      <h1 style={{ marginBottom: "30px" }}>Nhập mã PIN của bạn</h1>
+      <h1 style={{ marginBottom: "30px" }}>{t.staffLoginTitle}</h1>
 
       <div
         style={{
@@ -113,7 +133,7 @@ function StaffLoginContent() {
         </p>
       )}
 
-      {loading && <p style={{ fontSize: "18px" }}>Đang kiểm tra...</p>}
+      {loading && <p style={{ fontSize: "18px" }}>{t.checking}</p>}
 
       <div
         style={{
@@ -170,7 +190,7 @@ function StaffLoginContent() {
             cursor: "pointer",
           }}
         >
-          Xóa
+          {t.clear}
         </button>
       </div>
     </main>
@@ -179,7 +199,7 @@ function StaffLoginContent() {
 
 export default function StaffLoginPage() {
   return (
-    <Suspense fallback={<main style={{ padding: "40px" }}>Đang tải...</main>}>
+    <Suspense fallback={<main style={{ padding: "40px" }}>Loading...</main>}>
       <StaffLoginContent />
     </Suspense>
   );

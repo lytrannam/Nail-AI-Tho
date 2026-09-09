@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
 
 type Staff = {
   id: number;
@@ -15,6 +16,9 @@ export default function StaffManagePage() {
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<Language>("vi");
+
+  const t = translations[lang];
 
   const loadStaff = async () => {
     const {
@@ -40,15 +44,16 @@ export default function StaffManagePage() {
 
   useEffect(() => {
     loadStaff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addStaff = async () => {
     if (!name.trim()) {
-      alert("Vui lòng nhập tên thợ.");
+      alert(t.smNameRequired);
       return;
     }
     if (!/^\d{4}$/.test(pin)) {
-      alert("Mã PIN phải gồm đúng 4 chữ số.");
+      alert(t.smPinInvalid);
       return;
     }
 
@@ -57,7 +62,7 @@ export default function StaffManagePage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("Bạn cần đăng nhập.");
+      alert(t.smLoginRequired);
       return;
     }
 
@@ -69,7 +74,7 @@ export default function StaffManagePage() {
 
     if (error) {
       console.error(error);
-      alert("Không thể thêm thợ. Có thể mã PIN đã trùng.");
+      alert(t.smAddError);
       return;
     }
 
@@ -85,7 +90,7 @@ export default function StaffManagePage() {
       .eq("id", staff.id);
 
     if (error) {
-      alert("Không thể cập nhật trạng thái.");
+      alert(t.smUpdateError);
       return;
     }
 
@@ -93,11 +98,28 @@ export default function StaffManagePage() {
   };
 
   if (loading) {
-    return <main style={{ padding: "30px" }}>Đang tải...</main>;
+    return <main style={{ padding: "30px" }}>{t.smLoading}</main>;
   }
 
   return (
-    <main style={{ padding: "30px", fontFamily: "Arial, sans-serif" }}>
+    <main style={{ padding: "30px", fontFamily: "Arial, sans-serif", position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       <button
         type="button"
         onClick={() => {
@@ -105,10 +127,10 @@ export default function StaffManagePage() {
         }}
         style={{ padding: "10px 16px", marginBottom: "20px", cursor: "pointer" }}
       >
-        ← Quay lại danh sách khách
+        {t.smBack}
       </button>
 
-      <h1>Quản lý thợ</h1>
+      <h1>{t.smTitle}</h1>
 
       <div
         style={{
@@ -119,17 +141,17 @@ export default function StaffManagePage() {
           maxWidth: "400px",
         }}
       >
-        <h3>Thêm thợ mới</h3>
+        <h3>{t.smAddNewTitle}</h3>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Tên thợ"
+          placeholder={t.smNamePlaceholder}
           style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
         />
         <input
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-          placeholder="Mã PIN 4 số"
+          placeholder={t.smPinPlaceholder}
           inputMode="numeric"
           style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
         />
@@ -138,14 +160,14 @@ export default function StaffManagePage() {
           onClick={addStaff}
           style={{ padding: "10px 16px", cursor: "pointer", fontWeight: "bold" }}
         >
-          + Thêm thợ
+          {t.smAddButton}
         </button>
       </div>
 
       <div style={{ marginTop: "30px" }}>
-        <h3>Danh sách thợ</h3>
+        <h3>{t.smListTitle}</h3>
         {staffList.length === 0 ? (
-          <p>Chưa có thợ nào.</p>
+          <p>{t.smNoStaff}</p>
         ) : (
           staffList.map((staff) => (
             <div
@@ -164,15 +186,15 @@ export default function StaffManagePage() {
             >
               <div>
                 <strong>{staff.name}</strong>
-                <div>Mã PIN: {staff.pin_code}</div>
-                <div>{staff.is_active ? "Đang làm việc" : "Đã nghỉ"}</div>
+                <div>{t.smPinLabel.replace("{pin}", staff.pin_code)}</div>
+                <div>{staff.is_active ? t.smActiveStatus : t.smInactiveStatus}</div>
               </div>
               <button
                 type="button"
                 onClick={() => toggleActive(staff)}
                 style={{ padding: "8px 12px", cursor: "pointer" }}
               >
-                {staff.is_active ? "Đánh dấu nghỉ" : "Mở lại"}
+                {staff.is_active ? t.smMarkInactive : t.smReactivate}
               </button>
             </div>
           ))

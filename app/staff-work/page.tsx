@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { translations } from "../../lib/translations";
+import { translations, Language } from "../../lib/translations";
 
 type WorkItem = {
   appointmentId: number;
@@ -14,7 +14,8 @@ type WorkItem = {
 };
 
 export default function StaffWorkPage() {
-  const t = translations.vi;
+  const [lang, setLang] = useState<Language>("vi");
+  const t = translations[lang];
   const [staffName, setStaffName] = useState("");
   const [salonId, setSalonId] = useState("");
   const [items, setItems] = useState<WorkItem[]>([]);
@@ -37,6 +38,7 @@ export default function StaffWorkPage() {
     setStaffName(staff);
     setSalonId(salon);
     loadWork(salon);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadWork = async (salon: string) => {
@@ -83,7 +85,7 @@ export default function StaffWorkPage() {
         return {
           appointmentId: appt.id,
           customerId: appt.customer_id,
-          customerName: `Khách số ${index + 1}`,
+          customerName: t.swCustomerNumber.replace("{n}", String(index + 1)),
           designImage: customer?.selected_design_image || null,
           tryonImage: customer?.tryon_image || null,
           service: appt.service,
@@ -138,7 +140,7 @@ export default function StaffWorkPage() {
         setSavedMessage(false);
       }, 2000);
     } else {
-      alert("Không thể lưu. Vui lòng thử lại.");
+      alert(t.swSaveError);
     }
   };
 
@@ -152,15 +154,33 @@ export default function StaffWorkPage() {
     setCapturedImage(null);
   };
 
+  const LangToggle = () => (
+    <button
+      type="button"
+      onClick={() => setLang(lang === "en" ? "vi" : "en")}
+      style={{
+        position: "absolute",
+        top: "16px",
+        right: "16px",
+        padding: "8px 14px",
+        cursor: "pointer",
+        borderRadius: "8px",
+        border: "1px solid #ccc",
+        background: "white",
+      }}
+    >
+      🌐 {t.switchLang}
+    </button>
+  );
+
   if (loading) {
     return (
       <main style={{ padding: "40px", textAlign: "center", fontSize: "24px" }}>
-        Đang tải...
+        {t.swLoading}
       </main>
     );
   }
 
-  // Màn hình xác nhận đã lưu
   if (savedMessage) {
     return (
       <main
@@ -181,7 +201,6 @@ export default function StaffWorkPage() {
     );
   }
 
-  // Màn hình xem lại ảnh vừa chụp
   if (selectedItem && capturedImage) {
     return (
       <main
@@ -190,14 +209,16 @@ export default function StaffWorkPage() {
           padding: "20px",
           fontFamily: "Arial, sans-serif",
           textAlign: "center",
+          position: "relative",
         }}
       >
+        <LangToggle />
         <h2 style={{ fontSize: "26px" }}>
           {t.staffTakePhotoFor} {selectedItem.customerName}
         </h2>
         <img
           src={capturedImage}
-          alt="Ảnh vừa chụp"
+          alt={t.swCapturedPhotoAlt}
           style={{
             width: "100%",
             maxWidth: "400px",
@@ -254,7 +275,6 @@ export default function StaffWorkPage() {
     );
   }
 
-  // Màn hình chờ chụp (đã chọn khách nhưng chưa chụp)
   if (selectedItem) {
     return (
       <main
@@ -266,8 +286,10 @@ export default function StaffWorkPage() {
           justifyContent: "center",
           fontFamily: "Arial, sans-serif",
           padding: "20px",
+          position: "relative",
         }}
       >
+        <LangToggle />
         <input
           ref={fileInput}
           type="file"
@@ -282,10 +304,10 @@ export default function StaffWorkPage() {
 
         {(selectedItem.tryonImage || selectedItem.designImage) && (
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
-            <p style={{ fontSize: "16px", color: "#666" }}>Mẫu cần làm:</p>
+            <p style={{ fontSize: "16px", color: "#666" }}>{t.swDesignToMake}</p>
             <img
               src={selectedItem.tryonImage || selectedItem.designImage || ""}
-              alt="Mẫu cần làm"
+              alt={t.swDesignToMake}
               style={{
                 width: "220px",
                 borderRadius: "14px",
@@ -331,9 +353,8 @@ export default function StaffWorkPage() {
     );
   }
 
-  // Màn hình danh sách khách chờ
   return (
-    <main style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+    <main style={{ padding: "20px", fontFamily: "Arial, sans-serif", position: "relative" }}>
       <div
         style={{
           display: "flex",
@@ -344,13 +365,28 @@ export default function StaffWorkPage() {
         <h1 style={{ fontSize: "24px" }}>
           {t.staffWelcome}, {staffName}
         </h1>
-        <button
-          type="button"
-          onClick={handleLogout}
-          style={{ padding: "10px 16px", cursor: "pointer" }}
-        >
-          {t.staffLogout}
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            type="button"
+            onClick={() => setLang(lang === "en" ? "vi" : "en")}
+            style={{
+              padding: "8px 14px",
+              cursor: "pointer",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              background: "white",
+            }}
+          >
+            🌐 {t.switchLang}
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{ padding: "10px 16px", cursor: "pointer" }}
+          >
+            {t.staffLogout}
+          </button>
+        </div>
       </div>
 
       <h2 style={{ fontSize: "20px", marginTop: "20px" }}>
@@ -382,7 +418,7 @@ export default function StaffWorkPage() {
             {item.tryonImage || item.designImage ? (
               <img
                 src={item.tryonImage || item.designImage || ""}
-                alt="Mẫu nail"
+                alt={t.swNailDesignAlt}
                 style={{
                   width: "70px",
                   height: "70px",
@@ -405,7 +441,7 @@ export default function StaffWorkPage() {
                 {item.customerName}
               </div>
               <div style={{ fontSize: "16px", color: "#666" }}>
-                {item.service || "Chưa rõ dịch vụ"}
+                {item.service || t.swUnknownService}
               </div>
             </div>
           </button>

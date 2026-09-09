@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
+import { translations, Language } from "../../lib/translations";
 
 export default function StaffQrPage() {
   const qrRef = useRef<HTMLDivElement>(null);
   const [staffUrl, setStaffUrl] = useState("");
+  const [lang, setLang] = useState<Language>("vi");
+
+  const t = translations[lang];
 
   useEffect(() => {
     const buildUrl = async () => {
@@ -37,8 +41,26 @@ export default function StaffQrPage() {
         padding: "30px",
         fontFamily: "Arial, sans-serif",
         textAlign: "center",
+        position: "relative",
       }}
     >
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "vi" : "en")}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          padding: "8px 14px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          background: "white",
+        }}
+      >
+        🌐 {t.switchLang}
+      </button>
+
       <button
         type="button"
         onClick={() => {
@@ -50,13 +72,11 @@ export default function StaffQrPage() {
           cursor: "pointer",
         }}
       >
-        ← Quay lại danh sách khách
+        {t.smBack}
       </button>
 
-      <h1>Mã QR cho thợ</h1>
-      <p style={{ color: "#c0392b", fontWeight: "bold" }}>
-        ⚠️ Không dán mã này ở khu vực khách nhìn thấy. Chỉ để trong khu vực làm việc của thợ.
-      </p>
+      <h1>{t.sqTitle}</h1>
+      <p style={{ color: "#c0392b", fontWeight: "bold" }}>{t.sqWarning}</p>
 
       <div
         ref={qrRef}
@@ -81,12 +101,12 @@ export default function StaffQrPage() {
             fontWeight: "bold",
           }}
         >
-          ⬇️ Tải mã QR về
+          {t.sqDownloadButton}
         </button>
       </div>
 
       <p style={{ marginTop: "20px", color: "#666", wordBreak: "break-all" }}>
-        Link đang trỏ tới: {staffUrl}
+        {t.sqLinkLabel.replace("{url}", staffUrl)}
       </p>
     </main>
   );

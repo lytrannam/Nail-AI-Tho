@@ -210,19 +210,19 @@ export default function PortfolioPage() {
       ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
 
       // 5) Vẽ chữ watermark ở góc dưới bên trái
-      const fontSize = Math.max(14, Math.round(canvas.width * 0.03));
+      const fontSize = Math.max(16, Math.round(canvas.width * 0.032));
       ctx.font = `600 ${fontSize}px Arial`;
       const label = "Made with AL Nail AI";
       const textWidth = ctx.measureText(label).width;
-      const padX = 14;
-      const padY = 8;
+      const padX = 16;
+      const padY = 9;
       const boxHeight = fontSize + padY * 2;
       const boxY = canvas.height - boxHeight - qrMargin;
 
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
       ctx.fillRect(qrMargin, boxY, textWidth + padX * 2, boxHeight);
 
-      ctx.fillStyle = "white";
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
       ctx.textBaseline = "middle";
       ctx.fillText(label, qrMargin + padX, boxY + boxHeight / 2);
 

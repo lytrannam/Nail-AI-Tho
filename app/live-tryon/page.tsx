@@ -189,11 +189,20 @@ export default function LiveTryOnPage() {
       const video = videoRef.current;
       if (!video) return;
 
-      video.srcObject = stream;
-      await video.play();
+     video.srcObject = stream;
 
-      // Camera đã chạy thành công
-      setCameraError(null);
+try {
+  await video.play();
+} catch (err) {
+  if (err instanceof DOMException && err.name === "AbortError") {
+    console.log("Video play bị reload ngắt, bỏ qua.");
+  } else {
+    throw err;
+  }
+}
+
+// Camera đã chạy thành công
+setCameraError(null);
 
       // Sau đó tải MediaPipe
       const { FilesetResolver, HandLandmarker } =

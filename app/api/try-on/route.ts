@@ -31,6 +31,7 @@ async function checkRateLimit(
       count: 1,
       window_start: new Date().toISOString(),
     });
+
     return true;
   }
 
@@ -40,7 +41,9 @@ async function checkRateLimit(
 
   await supabaseAdmin
     .from("api_rate_limits")
-    .update({ count: data.count + 1 })
+    .update({
+      count: data.count + 1,
+    })
     .eq("key", key);
 
   return true;
@@ -48,7 +51,11 @@ async function checkRateLimit(
 
 function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+
   return "unknown";
 }
 
@@ -56,49 +63,128 @@ export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
 
-    // Tối đa 20 lần thử mẫu lên tay mỗi IP mỗi 24 giờ.
-    const allowed = await checkRateLimit(`tryon:${ip}`, 20, 1440);
+    const allowed = await checkRateLimit(
+      `tryon:${ip}`,
+      20,
+      1440
+    );
 
     if (!allowed) {
       return Response.json(
         {
           error:
-            "Đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại vào ngày mai hoặc liên hệ tiệm để được hỗ trợ.",
+            "Đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại vào ngày mai.",
         },
         { status: 429 }
       );
     }
 
-    const { image, designImage } = await request.json();
+    // Nhận đúng dữ liệu từ live-tryon/page.tsx
+    const {
+      image,
+      colorHex,
+      colorName,
+      style,
+    } = await request.json();
+
+    if (!image) {
+      return Response.json(
+        {
+          error: "Không có ảnh bàn tay.",
+        },
+        { status: 400 }
+      );
+    }
 
     const handResponse = await fetch(image);
     const handBlob = await handResponse.blob();
 
-    const designResponse = await fetch(designImage);
-    const designBlob = await designResponse.blob();
-    const handFile = new File([handBlob], "hand.png", { type: handBlob.type || "image/png" });
-    const designFile = new File([designBlob], "design.png", { type: designBlob.type || "image/png" });
+    const handFile = new File(
+      [handBlob],
+      "hand.jpg",
+      {
+        type: handBlob.type || "image/jpeg",
+      }
+    );
+
+    let stylePrompt = "";
+
+    if (style === "plain") {
+      stylePrompt =
+        "Use a plain solid nail color with no nail art.";
+    }
+
+    if (style === "light") {
+      stylePrompt =
+        "Use a simple elegant nail style with very light minimal decoration.";
+    }
+
+    if (style === "detailed") {
+      stylePrompt =
+        "Use a more detailed elegant salon nail design while keeping the selected color as the main color.";
+    }
+
     const editedImage = await openai.images.edit({
       model: "gpt-image-2",
-      image: [handFile, designFile],
+      image: handFile,
       quality: "low",
       size: "1024x1024",
-      prompt:
-        "Apply the nail art design from the reference image onto the fingernails of the hand photo. Keep the original hand, skin tone, fingers, lighting, background, and hand position unchanged. Only change the fingernails. Make the nail design realistic and salon-quality.",
-    });
-    const imageBase64 = editedImage.data?.[0]?.b64_json;
 
-    return Response.json({
-      tryOnImage: imageBase64
-        ? `data:image/png;base64,${imageBase64}`
-        : null,
+      prompt: `
+Edit the fingernails in this hand photo.
+
+Selected nail color:
+${colorName}
+Color hex:
+${colorHex}
+
+${stylePrompt}
+
+Keep the original:
+- hand
+- fingers
+- skin tone
+- hand position
+- lighting
+- background
+
+Only modify the fingernails.
+
+Make all nails realistic, clean, glossy and salon-quality.
+Do not change the shape or appearance of the person's hand.
+      `,
     });
+
+    const imageBase64 =
+      editedImage.data?.[0]?.b64_json;
+
+    if (!imageBase64) {
+      throw new Error(
+        "OpenAI did not return an image."
+      );
+    }
+
+    const resultImage =
+      `data:image/png;base64,${imageBase64}`;
+
+    // "image" khớp với page.tsx của bạn
+    return Response.json({
+      image: resultImage,
+    });
+
   } catch (error) {
-    console.error(error);
+    console.error(
+      "TRY-ON API ERROR:",
+      error
+    );
 
     return Response.json(
-      { error: "Không thể thử mẫu lên bàn tay." },
-      { status: 500 }
+      {
+        error: "Không thể tạo ảnh thử nail.",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

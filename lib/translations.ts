@@ -1,5 +1,9 @@
 export const translations = {
   en: {
+      shareButton: "Share",
+  sharing: "Processing...",
+  shareNoProfile: "Please set up your profile (username) before sharing. Go to /profile to create one.",
+  shareError: "Failed to share, please try again.",
       uNotFoundOrPrivate: "This page doesn't exist or is set to private.",
   uNoBio: "",
   uPortfolioHeading: "Portfolio",
@@ -228,6 +232,10 @@ export const translations = {
     lsSaveSuccess: "Loyalty settings saved.",
   },
   vi: {
+      shareButton: "Chia sẻ",
+  sharing: "Đang xử lý...",
+  shareNoProfile: "Bạn cần thiết lập Hồ sơ cá nhân (username) trước khi chia sẻ. Vào trang /profile để tạo nhé.",
+  shareError: "Chia sẻ thất bại, thử lại nhé.",
       uNotFoundOrPrivate: "Trang này không tồn tại hoặc đang ở chế độ riêng tư.",
   uNoBio: "",
   uPortfolioHeading: "Portfolio",

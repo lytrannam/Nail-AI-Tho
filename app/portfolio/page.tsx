@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
+import QRCode from "qrcode";
 
 type PortfolioItem = {
   id: number;
@@ -38,6 +39,8 @@ export default function PortfolioPage() {
   const [lang, setLang] = useState<Language>("vi");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+    const [techUsername, setTechUsername] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<number | null>(null);
 
   const t = translations[lang];
 
@@ -69,6 +72,13 @@ export default function PortfolioPage() {
         .order("created_at", { ascending: false });
 
       setPortfolio(sortPortfolio(data || []));
+      const { data: profileData } = await supabase
+        .from("tech_profiles")
+        .select("username")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setTechUsername(profileData?.username || null);
     };
 
     init();
@@ -150,7 +160,99 @@ export default function PortfolioPage() {
 
     if (fileInput.current) fileInput.current.value = "";
   };
+  const handleShare = async (item: PortfolioItem) => {
+    if (!techUsername) {
+      alert(t.shareNoProfile);
+      return;
+    }
 
+    setSharingId(item.id);
+
+    try {
+      const profileUrl = `${window.location.origin}/u/${techUsername}`;
+
+      // 1) Tải ảnh gốc lên bộ nhớ trình duyệt
+      const baseImage = new Image();
+      baseImage.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        baseImage.onload = () => resolve();
+        baseImage.onerror = reject;
+        baseImage.src = item.image_url;
+      });
+
+      // 2) Tạo "tấm vải" Canvas đúng bằng kích thước ảnh gốc
+      const canvas = document.createElement("canvas");
+      canvas.width = baseImage.naturalWidth;
+      canvas.height = baseImage.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no canvas context");
+
+      // 3) Vẽ ảnh gốc lên canvas
+      ctx.drawImage(baseImage, 0, 0);
+
+      // 4) Tạo mã QR trỏ về trang cá nhân, vẽ vào góc dưới bên phải
+      const qrSize = Math.round(canvas.width * 0.18);
+      const qrDataUrl = await QRCode.toDataURL(profileUrl, { width: qrSize, margin: 1 });
+      const qrImage = new Image();
+      await new Promise<void>((resolve, reject) => {
+        qrImage.onload = () => resolve();
+        qrImage.onerror = reject;
+        qrImage.src = qrDataUrl;
+      });
+
+      const qrMargin = Math.round(canvas.width * 0.03);
+      const qrX = canvas.width - qrSize - qrMargin;
+      const qrY = canvas.height - qrSize - qrMargin;
+
+      // nền trắng phía sau QR cho dễ quét
+      ctx.fillStyle = "white";
+      ctx.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);
+      ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
+      // 5) Vẽ chữ watermark ở góc dưới bên trái
+      const fontSize = Math.max(14, Math.round(canvas.width * 0.03));
+      ctx.font = `600 ${fontSize}px Arial`;
+      const label = "Made with AL Nail AI";
+      const textWidth = ctx.measureText(label).width;
+      const padX = 14;
+      const padY = 8;
+      const boxHeight = fontSize + padY * 2;
+      const boxY = canvas.height - boxHeight - qrMargin;
+
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(qrMargin, boxY, textWidth + padX * 2, boxHeight);
+
+      ctx.fillStyle = "white";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, qrMargin + padX, boxY + boxHeight / 2);
+
+      // 6) Xuất canvas thành file ảnh
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92)
+      );
+      if (!blob) throw new Error("export failed");
+
+      const file = new File([blob], "al-nail-ai-design.jpg", { type: "image/jpeg" });
+
+      // 7) Mở hộp thoại chia sẻ (điện thoại), hoặc tải về (máy tính)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "AL Nail AI",
+        });
+      } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "al-nail-ai-design.jpg";
+        link.click();
+      }
+    } catch (err) {
+      console.error(err);
+      alert(t.shareError);
+    } finally {
+      setSharingId(null);
+    }
+  };
   const handleDelete = async (id: number) => {
     const confirmed = window.confirm(t.portfolioDeleteConfirm);
     if (!confirmed) return;
@@ -329,6 +431,26 @@ export default function PortfolioPage() {
                       {t.portfolioDifficultyLabel}: {difficultyLabel(item.difficulty)}
                     </div>
                   )}
+                                    <button
+                    type="button"
+                    onClick={() => handleShare(item)}
+                    disabled={sharingId === item.id}
+                    style={{
+                      marginTop: "10px",
+                      width: "100%",
+                      padding: "8px",
+                      fontSize: "13px",
+                      cursor: sharingId === item.id ? "not-allowed" : "pointer",
+                      background: "var(--accent)",
+                      border: "none",
+                      borderRadius: "999px",
+                      color: "white",
+                      fontWeight: 600,
+                      opacity: sharingId === item.id ? 0.6 : 1,
+                    }}
+                  >
+                    {sharingId === item.id ? t.sharing : t.shareButton}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}

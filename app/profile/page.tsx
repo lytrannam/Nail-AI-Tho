@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { QRCodeSVG } from "qrcode.react";
 import { translations, Language } from "../../lib/translations";
 
 type TechProfile = {
@@ -278,10 +279,24 @@ export default function ProfilePage() {
           placeholder="ten-cua-ban"
           style={inputStyle}
         />
-        {username && (
-          <p style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "6px" }}>
-            {t.profileLinkPreview}: <strong>{publicUrl}</strong>
-          </p>
+        {username && isPublic && (
+          <div style={{ marginTop: "16px" }}>
+            <p style={{ fontSize: "12px", color: "var(--foreground-soft)" }}>
+              {t.profileLinkPreview}: <strong>{publicUrl}</strong>
+            </p>
+            <div
+              style={{
+                marginTop: "10px",
+                padding: "16px",
+                background: "white",
+                borderRadius: "12px",
+                display: "inline-block",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <QRCodeSVG value={publicUrl} size={140} />
+            </div>
+          </div>
         )}
       </div>
 

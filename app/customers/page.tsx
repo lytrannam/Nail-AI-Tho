@@ -14,6 +14,17 @@ type Customer = {
   all_design_images?: string[] | null;
 };
 
+const navButtonStyle: React.CSSProperties = {
+  padding: "10px 18px",
+  cursor: "pointer",
+  borderRadius: "999px",
+  border: "1px solid var(--border)",
+  background: "var(--surface)",
+  color: "var(--foreground)",
+  fontSize: "14px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+};
+
 export default function CustomersPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -193,100 +204,45 @@ export default function CustomersPage() {
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
         <h1 style={{ fontSize: "30px" }}>{t.custPageTitle}</h1>
         <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>{t.custPageSubtitle}</p>
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/stats";
-          }}
+
+        <div
           style={{
-            padding: "10px 18px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            marginTop: "16px",
             marginBottom: "10px",
-            cursor: "pointer",
-            borderRadius: "999px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-            fontSize: "14px",
           }}
         >
-          {t.custViewStats}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/staff-manage";
-          }}
-          style={{
-            padding: "10px 18px",
-            marginBottom: "10px",
-            marginLeft: "8px",
-            cursor: "pointer",
-            borderRadius: "999px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-            fontSize: "14px",
-          }}
-        >
-          {t.custManageStaff}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/staff-qr";
-          }}
-          style={{
-            padding: "10px 18px",
-            marginBottom: "10px",
-            marginLeft: "8px",
-            cursor: "pointer",
-            borderRadius: "999px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-            fontSize: "14px",
-          }}
-        >
-          {t.custStaffQr}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/loyalty-settings";
-          }}
-          style={{
-            padding: "10px 18px",
-            marginBottom: "10px",
-            marginLeft: "8px",
-            cursor: "pointer",
-            borderRadius: "999px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-            fontSize: "14px",
-          }}
-        >
-          {t.custLoyalty}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/portfolio";
-          }}
-          style={{
-            padding: "10px 18px",
-            marginBottom: "10px",
-            marginLeft: "8px",
-            cursor: "pointer",
-            borderRadius: "999px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-            fontSize: "14px",
-          }}
-        >
-          🖼️ {t.custPortfolioNav}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/stats";
+            }}
+            style={navButtonStyle}
+          >
+            📊 {t.custViewStats}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/portfolio";
+            }}
+            style={navButtonStyle}
+          >
+            🖼️ {t.custPortfolioNav}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/profile";
+            }}
+            style={navButtonStyle}
+          >
+            👤 {t.custProfileNav}
+          </button>
+        </div>
+
         <div
           style={{
             background: "var(--surface)",
@@ -294,6 +250,7 @@ export default function CustomersPage() {
             padding: "22px",
             borderRadius: "18px",
             marginTop: "28px",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
           }}
         >
           <input
@@ -422,6 +379,7 @@ export default function CustomersPage() {
                   padding: "16px 18px",
                   borderRadius: "16px",
                   marginBottom: "10px",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                 }}
               >
                 <button

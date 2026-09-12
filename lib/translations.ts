@@ -1,5 +1,6 @@
 export const translations = {
   en: {
+      custProfileNav: "Profile",
       shareButton: "Share",
   sharing: "Processing...",
   shareNoProfile: "Please set up your profile (username) before sharing. Go to /profile to create one.",
@@ -232,6 +233,7 @@ export const translations = {
     lsSaveSuccess: "Loyalty settings saved.",
   },
   vi: {
+      custProfileNav: "Hồ sơ",
       shareButton: "Chia sẻ",
   sharing: "Đang xử lý...",
   shareNoProfile: "Bạn cần thiết lập Hồ sơ cá nhân (username) trước khi chia sẻ. Vào trang /profile để tạo nhé.",

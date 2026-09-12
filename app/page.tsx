@@ -285,6 +285,7 @@ function PageContent() {
             background: "var(--accent-soft)",
             border: "1px solid var(--border)",
             color: "var(--foreground)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.05)",
           }}
         >
           {loyaltyInfo.currentVisits >= loyaltyInfo.visitsRequired ||
@@ -323,6 +324,7 @@ function PageContent() {
             lineHeight: "1.7",
             textAlign: "left",
             color: "var(--foreground)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.05)",
           }}
         >
           {t.instructions}
@@ -352,7 +354,7 @@ function PageContent() {
           margin: "10px",
           background: "var(--accent)",
           color: "white",
-          boxShadow: "0 6px 20px rgba(140,47,75,0.25)",
+          boxShadow: "0 6px 20px rgba(255,45,120,0.3)",
         }}
       >
         {t.chooseOrTakePhoto}
@@ -369,6 +371,7 @@ function PageContent() {
               width: "350px",
               borderRadius: "20px",
               border: "1px solid var(--border)",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
             }}
           />
           <br />
@@ -385,6 +388,7 @@ function PageContent() {
               marginTop: "24px",
               background: loading ? "var(--foreground-soft)" : "var(--accent)",
               color: "white",
+              boxShadow: loading ? "none" : "0 6px 20px rgba(255,45,120,0.3)",
             }}
           >
             {loading ? t.analyzing : t.viewSuggestions}
@@ -402,6 +406,7 @@ function PageContent() {
             borderRadius: "20px",
             background: "var(--surface)",
             border: "1px solid var(--border)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
           }}
         >
           <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>{t.suggestionsTitle}</h2>
@@ -444,6 +449,10 @@ function PageContent() {
                           ? "3px solid var(--accent)"
                           : "1px solid var(--border)",
                       background: "var(--surface)",
+                      boxShadow:
+                        selectedDesign === index
+                          ? "0 4px 16px rgba(255,45,120,0.18)"
+                          : "0 2px 8px rgba(0,0,0,0.04)",
                     }}
                   >
                     <img
@@ -507,6 +516,7 @@ function PageContent() {
                   borderRadius: "20px",
                   marginTop: "15px",
                   border: "1px solid var(--border)",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                 }}
               />
             </div>
@@ -522,6 +532,7 @@ function PageContent() {
                 padding: "22px",
                 background: "var(--accent-soft)",
                 borderRadius: "18px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.05)",
               }}
             >
               <h3 style={{ fontSize: "18px", marginBottom: "12px" }}>

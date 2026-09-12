@@ -39,7 +39,7 @@ export default function PortfolioPage() {
   const [lang, setLang] = useState<Language>("vi");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
-    const [techUsername, setTechUsername] = useState<string | null>(null);
+  const [techUsername, setTechUsername] = useState<string | null>(null);
   const [sharingId, setSharingId] = useState<number | null>(null);
 
   const t = translations[lang];
@@ -160,6 +160,7 @@ export default function PortfolioPage() {
 
     if (fileInput.current) fileInput.current.value = "";
   };
+
   const handleShare = async (item: PortfolioItem) => {
     if (!techUsername) {
       alert(t.shareNoProfile);
@@ -171,7 +172,6 @@ export default function PortfolioPage() {
     try {
       const profileUrl = `${window.location.origin}/u/${techUsername}`;
 
-      // 1) Tải ảnh gốc lên bộ nhớ trình duyệt
       const baseImage = new Image();
       baseImage.crossOrigin = "anonymous";
       await new Promise<void>((resolve, reject) => {
@@ -180,17 +180,14 @@ export default function PortfolioPage() {
         baseImage.src = item.image_url;
       });
 
-      // 2) Tạo "tấm vải" Canvas đúng bằng kích thước ảnh gốc
       const canvas = document.createElement("canvas");
       canvas.width = baseImage.naturalWidth;
       canvas.height = baseImage.naturalHeight;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("no canvas context");
 
-      // 3) Vẽ ảnh gốc lên canvas
       ctx.drawImage(baseImage, 0, 0);
 
-      // 4) Tạo mã QR trỏ về trang cá nhân, vẽ vào góc dưới bên phải
       const qrSize = Math.round(canvas.width * 0.18);
       const qrDataUrl = await QRCode.toDataURL(profileUrl, { width: qrSize, margin: 1 });
       const qrImage = new Image();
@@ -204,12 +201,10 @@ export default function PortfolioPage() {
       const qrX = canvas.width - qrSize - qrMargin;
       const qrY = canvas.height - qrSize - qrMargin;
 
-      // nền trắng phía sau QR cho dễ quét
       ctx.fillStyle = "white";
       ctx.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);
       ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
 
-      // 5) Vẽ chữ watermark ở góc dưới bên trái
       const fontSize = Math.max(16, Math.round(canvas.width * 0.032));
       ctx.font = `600 ${fontSize}px Arial`;
       const label = "Made with AL Nail AI";
@@ -226,7 +221,6 @@ export default function PortfolioPage() {
       ctx.textBaseline = "middle";
       ctx.fillText(label, qrMargin + padX, boxY + boxHeight / 2);
 
-      // 6) Xuất canvas thành file ảnh
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92)
       );
@@ -234,7 +228,6 @@ export default function PortfolioPage() {
 
       const file = new File([blob], "al-nail-ai-design.jpg", { type: "image/jpeg" });
 
-      // 7) Mở hộp thoại chia sẻ (điện thoại), hoặc tải về (máy tính)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -253,6 +246,7 @@ export default function PortfolioPage() {
       setSharingId(null);
     }
   };
+
   const handleDelete = async (id: number) => {
     const confirmed = window.confirm(t.portfolioDeleteConfirm);
     if (!confirmed) return;
@@ -305,7 +299,26 @@ export default function PortfolioPage() {
         🌐 {t.switchLang}
       </button>
 
-      <h1 style={{ fontSize: "30px" }}>{t.portfolioTitle}</h1>
+      <button
+        type="button"
+        onClick={() => {
+          window.location.href = "/customers";
+        }}
+        style={{
+          padding: "8px 16px",
+          cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        }}
+      >
+        ← {lang === "vi" ? "Quay lại" : "Back"}
+      </button>
+
+      <h1 style={{ fontSize: "30px", marginTop: "20px" }}>{t.portfolioTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.portfolioSubtitle}</p>
 
       <div
@@ -320,6 +333,7 @@ export default function PortfolioPage() {
           maxWidth: "600px",
           fontSize: "14px",
           lineHeight: "1.7",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.05)",
         }}
       >
         <strong>{t.portfolioGuideTitle}</strong>
@@ -415,6 +429,7 @@ export default function PortfolioPage() {
                     borderRadius: "16px",
                     padding: "10px",
                     position: "relative",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                   }}
                 >
                   <img
@@ -431,44 +446,44 @@ export default function PortfolioPage() {
                       {t.portfolioDifficultyLabel}: {difficultyLabel(item.difficulty)}
                     </div>
                   )}
-                                    <button
-                    type="button"
-                    onClick={() => handleShare(item)}
-                    disabled={sharingId === item.id}
-                    style={{
-                      marginTop: "10px",
-                      width: "100%",
-                      padding: "8px",
-                      fontSize: "13px",
-                      cursor: sharingId === item.id ? "not-allowed" : "pointer",
-                      background: "var(--accent)",
-                      border: "none",
-                      borderRadius: "999px",
-                      color: "white",
-                      fontWeight: 600,
-                      opacity: sharingId === item.id ? 0.6 : 1,
-                    }}
-                  >
-                    {sharingId === item.id ? t.sharing : t.shareButton}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    style={{
-                      marginTop: "10px",
-                      width: "100%",
-                      padding: "8px",
-                      fontSize: "13px",
-                      cursor: "pointer",
-                      background: "transparent",
-                      border: "1px solid var(--accent)",
-                      borderRadius: "999px",
-                      color: "var(--accent)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {t.portfolioDeleteButton}
-                  </button>
+                  <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleShare(item)}
+                      disabled={sharingId === item.id}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        fontSize: "13px",
+                        cursor: sharingId === item.id ? "not-allowed" : "pointer",
+                        background: "var(--accent)",
+                        border: "none",
+                        borderRadius: "999px",
+                        color: "white",
+                        fontWeight: 600,
+                        opacity: sharingId === item.id ? 0.6 : 1,
+                      }}
+                    >
+                      {sharingId === item.id ? t.sharing : t.shareButton}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        background: "transparent",
+                        border: "1px solid var(--accent)",
+                        borderRadius: "999px",
+                        color: "var(--accent)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {t.portfolioDeleteButton}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

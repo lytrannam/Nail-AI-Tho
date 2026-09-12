@@ -207,151 +207,162 @@ export default function ProfilePage() {
         🌐 {t.switchLang}
       </button>
 
-      <h1 style={{ fontSize: "30px" }}>{t.profileTitle}</h1>
+      <button
+        type="button"
+        onClick={() => {
+          window.location.href = "/customers";
+        }}
+        style={{
+          padding: "8px 16px",
+          cursor: "pointer",
+          borderRadius: "999px",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          color: "var(--foreground)",
+          fontSize: "14px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        }}
+      >
+        ← {lang === "vi" ? "Quay lại" : "Back"}
+      </button>
+
+      <h1 style={{ fontSize: "30px", marginTop: "20px" }}>{t.profileTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.profileSubtitle}</p>
 
-      <div style={{ marginTop: "28px", display: "flex", alignItems: "center", gap: "16px" }}>
-        <div
-          style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "50%",
-            background: "var(--accent-soft)",
-            overflow: "hidden",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <span style={{ fontSize: "24px" }}>🙂</span>
-          )}
-        </div>
-        <div>
-          <label
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "18px",
+          padding: "24px",
+          marginTop: "24px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
             style={{
-              display: "inline-block",
-              padding: "8px 16px",
-              borderRadius: "999px",
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              cursor: "pointer",
-              fontSize: "13px",
+              width: "72px",
+              height: "72px",
+              borderRadius: "50%",
+              background: "var(--accent-soft)",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
             }}
           >
-            {avatarUploading ? t.profileUploading : t.profileChangeAvatar}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              disabled={avatarUploading}
-              style={{ display: "none" }}
-            />
-          </label>
-        </div>
-      </div>
-
-      <div style={{ marginTop: "24px" }}>
-        <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>
-          {t.profileDisplayNameLabel}
-        </label>
-        <input
-          type="text"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder={t.profileDisplayNamePlaceholder}
-          style={inputStyle}
-        />
-      </div>
-
-      <div style={{ marginTop: "16px" }}>
-        <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>
-          {t.profileUsernameLabel}
-        </label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="ten-cua-ban"
-          style={inputStyle}
-        />
-        {username && isPublic && (
-          <div style={{ marginTop: "16px" }}>
-            <p style={{ fontSize: "12px", color: "var(--foreground-soft)" }}>
-              {t.profileLinkPreview}: <strong>{publicUrl}</strong>
-            </p>
-            <div
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <span style={{ fontSize: "24px" }}>🙂</span>
+            )}
+          </div>
+          <div>
+            <label
               style={{
-                marginTop: "10px",
-                padding: "16px",
-                background: "white",
-                borderRadius: "12px",
                 display: "inline-block",
+                padding: "8px 16px",
+                borderRadius: "999px",
                 border: "1px solid var(--border)",
+                background: "var(--background)",
+                cursor: "pointer",
+                fontSize: "13px",
               }}
             >
-              <QRCodeSVG value={publicUrl} size={140} />
-            </div>
+              {avatarUploading ? t.profileUploading : t.profileChangeAvatar}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                disabled={avatarUploading}
+                style={{ display: "none" }}
+              />
+            </label>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div style={{ marginTop: "16px" }}>
-        <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>{t.profileBioLabel}</label>
-        <textarea
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          placeholder={t.profileBioPlaceholder}
-          rows={3}
-          style={{ ...inputStyle, resize: "vertical" }}
-        />
-      </div>
+        <div style={{ marginTop: "24px" }}>
+          <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>
+            {t.profileDisplayNameLabel}
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder={t.profileDisplayNamePlaceholder}
+            style={inputStyle}
+          />
+        </div>
 
-      <h3 style={{ marginTop: "32px", fontSize: "16px" }}>{t.profileSocialHeading}</h3>
-      <p style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "2px" }}>
-        {t.profileSocialOptionalNote}
-      </p>
+        <div style={{ marginTop: "16px" }}>
+          <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>
+            {t.profileUsernameLabel}
+          </label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="ten-cua-ban"
+            style={inputStyle}
+          />
+        </div>
 
-      <div style={{ marginTop: "12px" }}>
-        <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>Instagram</label>
-        <input
-          type="text"
-          value={instagramUrl}
-          onChange={(e) => setInstagramUrl(e.target.value)}
-          placeholder="https://instagram.com/..."
-          style={inputStyle}
-        />
-      </div>
+        <div style={{ marginTop: "16px" }}>
+          <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>{t.profileBioLabel}</label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder={t.profileBioPlaceholder}
+            rows={3}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </div>
 
-      <div style={{ marginTop: "12px" }}>
-        <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>TikTok</label>
-        <input
-          type="text"
-          value={tiktokUrl}
-          onChange={(e) => setTiktokUrl(e.target.value)}
-          placeholder="https://tiktok.com/@..."
-          style={inputStyle}
-        />
-      </div>
+        <h3 style={{ marginTop: "28px", fontSize: "16px" }}>{t.profileSocialHeading}</h3>
+        <p style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "2px" }}>
+          {t.profileSocialOptionalNote}
+        </p>
 
-      <div style={{ marginTop: "12px" }}>
-        <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>Facebook</label>
-        <input
-          type="text"
-          value={facebookUrl}
-          onChange={(e) => setFacebookUrl(e.target.value)}
-          placeholder="https://facebook.com/..."
-          style={inputStyle}
-        />
+        <div style={{ marginTop: "12px" }}>
+          <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>Instagram</label>
+          <input
+            type="text"
+            value={instagramUrl}
+            onChange={(e) => setInstagramUrl(e.target.value)}
+            placeholder="https://instagram.com/..."
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ marginTop: "12px" }}>
+          <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>TikTok</label>
+          <input
+            type="text"
+            value={tiktokUrl}
+            onChange={(e) => setTiktokUrl(e.target.value)}
+            placeholder="https://tiktok.com/@..."
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ marginTop: "12px" }}>
+          <label style={{ fontSize: "13px", color: "var(--foreground-soft)" }}>Facebook</label>
+          <input
+            type="text"
+            value={facebookUrl}
+            onChange={(e) => setFacebookUrl(e.target.value)}
+            placeholder="https://facebook.com/..."
+            style={inputStyle}
+          />
+        </div>
       </div>
 
       <div
         style={{
-          marginTop: "32px",
+          marginTop: "20px",
           padding: "16px 18px",
           borderRadius: "14px",
           border: "1px solid var(--border)",
@@ -360,6 +371,7 @@ export default function ProfilePage() {
           alignItems: "center",
           justifyContent: "space-between",
           gap: "12px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
         }}
       >
         <div>
@@ -386,7 +398,6 @@ export default function ProfilePage() {
               transition: "background 0.2s",
               cursor: "pointer",
             }}
-
           />
           <span
             style={{
@@ -404,6 +415,36 @@ export default function ProfilePage() {
         </label>
       </div>
 
+      {username && isPublic && (
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "20px",
+            borderRadius: "14px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontSize: "12px", color: "var(--foreground-soft)" }}>
+            {t.profileLinkPreview}: <strong>{publicUrl}</strong>
+          </p>
+          <div
+            style={{
+              marginTop: "12px",
+              padding: "16px",
+              background: "white",
+              borderRadius: "12px",
+              display: "inline-block",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <QRCodeSVG value={publicUrl} size={140} />
+          </div>
+        </div>
+      )}
+
       {verified && (
         <div style={{ marginTop: "12px", fontSize: "13px", color: "var(--accent)" }}>
           ✓ {t.profileVerifiedBadge}
@@ -415,7 +456,7 @@ export default function ProfilePage() {
         onClick={handleSave}
         disabled={saving}
         style={{
-          marginTop: "28px",
+          marginTop: "24px",
           width: "100%",
           padding: "14px 0",
           borderRadius: "12px",
@@ -426,6 +467,7 @@ export default function ProfilePage() {
           fontWeight: 600,
           cursor: saving ? "not-allowed" : "pointer",
           opacity: saving ? 0.7 : 1,
+          boxShadow: "0 4px 14px rgba(255,45,120,0.3)",
         }}
       >
         {saving ? t.profileSaving : t.profileSaveButton}
@@ -444,7 +486,7 @@ const inputStyle: React.CSSProperties = {
   padding: "10px 14px",
   borderRadius: "10px",
   border: "1px solid var(--border)",
-  background: "var(--surface)",
+  background: "var(--background)",
   color: "var(--foreground)",
   fontSize: "14px",
   fontFamily: "var(--font-body)",

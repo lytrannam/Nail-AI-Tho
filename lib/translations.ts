@@ -1,5 +1,11 @@
 export const translations = {
   en: {
+      loginSignupHeading: "Create a new tech account",
+  loginSignupButton: "Sign Up",
+  loginSigningUp: "Signing up...",
+  loginSwitchToSignup: "Don't have an account? Sign up",
+  loginSwitchToLogin: "Already have an account? Sign in",
+  loginSignupSuccessMessage: "Signup successful! Please check your email (including Spam) to confirm before signing in.",
       uFilterAll: "All",
   uFilterEasy: "Simple",
   uFilterMedium: "Medium",
@@ -248,6 +254,12 @@ export const translations = {
     lsSaveSuccess: "Loyalty settings saved.",
   },
   vi: {
+      loginSignupHeading: "Tạo tài khoản thợ mới",
+  loginSignupButton: "Đăng ký",
+  loginSigningUp: "Đang đăng ký...",
+  loginSwitchToSignup: "Chưa có tài khoản? Đăng ký ngay",
+  loginSwitchToLogin: "Đã có tài khoản? Đăng nhập",
+  loginSignupSuccessMessage: "Đăng ký thành công! Vui lòng kiểm tra email (cả mục Spam) để xác nhận trước khi đăng nhập.",
       uFilterAll: "Tất cả",
   uFilterEasy: "Đơn giản",
   uFilterMedium: "Vừa phải",

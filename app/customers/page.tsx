@@ -12,6 +12,7 @@ type Customer = {
   last_visit?: string | null;
   selected_design_image?: string | null;
   all_design_images?: string[] | null;
+  created_at?: string | null;
 };
 
 const navButtonStyle: React.CSSProperties = {
@@ -34,6 +35,7 @@ export default function CustomersPage() {
   const [sendingAll, setSendingAll] = useState(false);
   const [lang, setLang] = useState<Language>("vi");
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [profileViews, setProfileViews] = useState<number | null>(null);
 
   const t = translations[lang];
 
@@ -48,13 +50,22 @@ export default function CustomersPage() {
       const { data, error } = await supabase
         .from("customers")
         .select(
-          "id, name, phone, email, last_visit, selected_design_image, all_design_images"
+          "id, name, phone, email, last_visit, selected_design_image, all_design_images, created_at"
         )
         .eq("user_id", user.id);
 
       if (!error && data) {
         setCustomers(data);
       }
+
+      // Lay so luot xem trang ca nhan tu bang tech_profiles
+      const { data: profileData } = await supabase
+        .from("tech_profiles")
+        .select("profile_views")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setProfileViews(profileData?.profile_views ?? 0);
     };
 
     loadCustomers();
@@ -82,7 +93,7 @@ export default function CustomersPage() {
         user_id: user.id,
         session_token: newToken,
       })
-      .select("id, name, phone, email")
+      .select("id, name, phone, email, created_at")
       .single();
 
     if (error) {
@@ -124,6 +135,15 @@ export default function CustomersPage() {
     return (
       Date.now() - new Date(customer.last_visit).getTime() >
       21 * 24 * 60 * 60 * 1000
+    );
+  }).length;
+
+  // Khach moi: tao trong vong 30 ngay gan day
+  const newCustomersCount = customers.filter((customer) => {
+    if (!customer.created_at) return false;
+    return (
+      Date.now() - new Date(customer.created_at).getTime() <=
+      30 * 24 * 60 * 60 * 1000
     );
   }).length;
 
@@ -205,12 +225,74 @@ export default function CustomersPage() {
         <h1 style={{ fontSize: "30px" }}>{t.custPageTitle}</h1>
         <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>{t.custPageSubtitle}</p>
 
+        {/* KHOI TONG QUAN - dat tren cung, giong "Your Business at a Glance" */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "10px",
+            marginTop: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
+              padding: "14px 10px",
+              textAlign: "center",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--accent)" }}>
+              {profileViews ?? "—"}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "4px" }}>
+              {lang === "vi" ? "Lượt xem hồ sơ" : "Profile Views"}
+            </div>
+          </div>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
+              padding: "14px 10px",
+              textAlign: "center",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--accent)" }}>
+              {customers.length}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "4px" }}>
+              {lang === "vi" ? "Tổng khách" : "Total Customers"}
+            </div>
+          </div>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
+              padding: "14px 10px",
+              textAlign: "center",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "var(--accent)" }}>
+              {newCustomersCount}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "4px" }}>
+              {lang === "vi" ? "Khách mới (30 ngày)" : "New (30 days)"}
+            </div>
+          </div>
+        </div>
+
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             gap: "10px",
-            marginTop: "16px",
+            marginTop: "20px",
             marginBottom: "10px",
           }}
         >
@@ -240,6 +322,15 @@ export default function CustomersPage() {
             style={navButtonStyle}
           >
             👤 {t.custProfileNav}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/help";
+            }}
+            style={navButtonStyle}
+          >
+            ❓ {lang === "vi" ? "Trợ giúp" : "Help"}
           </button>
         </div>
 

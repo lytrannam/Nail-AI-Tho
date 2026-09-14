@@ -48,6 +48,10 @@ export default function PublicProfilePage() {
       }
 
       setProfile(profileData as TechProfile);
+            setProfile(profileData as TechProfile);
+
+      // Tang dem luot xem, khong can cho ket qua tra ve (chay ngam)
+      supabase.rpc("increment_profile_views", { p_username: username });
 
       const { data: portfolioData } = await supabase
         .from("portfolio")

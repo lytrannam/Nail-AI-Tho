@@ -94,6 +94,13 @@ export async function POST(request: Request) {
 
 3. Nail design:
 - Đề xuất đúng 4 mẫu design.
+- QUAN TRỌNG: 4 mẫu này BẮT BUỘC phải khác biệt rõ rệt với nhau, không được
+  có 2 mẫu nào giống hoặc gần giống nhau. Hãy làm theo đúng 4 mức độ sau,
+  mỗi mẫu 1 mức, không lặp lại:
+  • Mẫu 1: Đơn giản, trơn màu hoặc rất ít họa tiết.
+  • Mẫu 2: Vừa phải, có 1 chi tiết nhỏ (ví dụ 1 hoa văn đơn giản hoặc ombre nhẹ).
+  • Mẫu 3: Cầu kỳ hơn, có họa tiết rõ rệt (hoa, đường nét, 3D nhẹ...).
+  • Mẫu 4: Đặc biệt/nổi bật (chrome, glitter, hoặc phối nhiều màu).
 - Với mỗi mẫu, ghi:
   • Tên design
   • Màu chính
@@ -191,9 +198,14 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
 
     const aiSlotsNeeded = TOTAL_SLOTS - realMatches.length;
 
+    // Bat dau danh so tu ngay sau so luong anh THAT da co, de moi anh AI van
+    // ung voi dung 1 "muc do" rieng biet trong 4 muc do da yeu cau AI phan tich
+    // (don gian / vua / cau ky / dac biet), tranh trung muc do voi nhau.
+    const startDesignNumber = realMatches.length + 1;
+
     const aiImages = await Promise.all(
       Array.from({ length: aiSlotsNeeded }).map(async (_, i) => {
-        const designNumber = i + 1;
+        const designNumber = startDesignNumber + i;
         const generated = await openai.images.generate({
           model: "gpt-image-2",
           prompt: `
@@ -204,8 +216,13 @@ Use ONLY nail design concept number ${designNumber} from this analysis:
 ${resultText}
 
 Requirements:
-- Show only ONE nail design concept.
-- Match the colors, nail shape, and patterns from concept ${designNumber}.
+- Show only ONE nail design concept: concept number ${designNumber} specifically.
+- Match the colors, nail shape, and patterns described for concept ${designNumber}.
+- This design MUST look clearly and visibly different in complexity and style
+  from any other concept number in the analysis above. If concept ${designNumber}
+  is described as simple/plain, keep it genuinely plain with no pattern. If it
+  is described as detailed or special (glitter, chrome, floral, etc.), make
+  that feature clearly visible and prominent, not subtle.
 - Realistic salon-quality nails.
 - Clean and beautiful hand pose.
 - No text, labels, or logos.

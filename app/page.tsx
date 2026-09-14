@@ -5,6 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { translations, Language } from "../lib/translations";
 
+type TryOnResult = {
+  designIndex: number;
+  image: string;
+};
+
+const MAX_TRYON_PER_VISIT = 2;
+
 function PageContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -17,12 +24,12 @@ function PageContent() {
   const [designSources, setDesignSources] = useState<("real" | "ai")[]>([]);
   const [designImage, setDesignImage] = useState<string | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<number | null>(null);
-  const [tryOnImage, setTryOnImage] = useState<string | null>(null);
+  const [tryOnResults, setTryOnResults] = useState<TryOnResult[]>([]);
   const [tryOnLoading, setTryOnLoading] = useState(false);
   const [tryOnError, setTryOnError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [lang, setLang] = useState<Language>("en");
-  const [tryonUsed, setTryonUsed] = useState(false);
+  const [tryOnCount, setTryOnCount] = useState(0);
 
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [loyaltyInfo, setLoyaltyInfo] = useState<{
@@ -59,7 +66,10 @@ function PageContent() {
         const data = result.customer;
 
         setCustomerId(data.id);
-        setTryonUsed(data.tryon_used || false);
+        // Neu khach nay da tung dung tryon_used=true tu truoc (du lieu cu, chi
+        // luu 1 lan dung/chua), coi nhu da het luot de an toan chi phi, khong
+        // biet chinh xac ho da dung bao nhieu lan truoc do.
+        setTryOnCount(data.tryon_used ? MAX_TRYON_PER_VISIT : 0);
       } catch (error) {
         console.error("Lỗi đọc token:", error);
       }
@@ -97,7 +107,8 @@ function PageContent() {
         setDesignImage(null);
         setDesignImages([]);
         setDesignSources([]);
-        setTryOnImage(null);
+        // Anh tay moi hoan toan -> xoa het ket qua thu cu, bat dau lai tu dau
+        setTryOnResults([]);
         setTryOnError("");
       };
 
@@ -112,7 +123,7 @@ function PageContent() {
     setResult("");
     setDesignImage(null);
     setSelectedDesign(null);
-    setTryOnImage(null);
+    setTryOnResults([]);
     setTryOnError("");
 
     try {
@@ -162,10 +173,11 @@ function PageContent() {
   };
 
   const tryOnNails = async () => {
-    if (!image || !designImage) return;
+    if (!image || !designImage || selectedDesign === null) return;
+    if (tryOnCount >= MAX_TRYON_PER_VISIT) return;
+
     setTryOnLoading(true);
     try {
-      setTryOnImage(null);
       setTryOnError("");
 
       const response = await fetch("/api/try-on", {
@@ -179,17 +191,28 @@ function PageContent() {
         throw new Error(data.error || "Không thể thử mẫu");
       }
 
-      setTryOnImage(data.tryOnImage);
+      const newResultImage = data.tryOnImage || data.image;
 
-      if (customerId && data.tryOnImage) {
+      // Them ket qua moi vao danh sach, KHONG xoa ket qua cu (de khach so sanh)
+      setTryOnResults((prev) => [
+        ...prev,
+        { designIndex: selectedDesign, image: newResultImage },
+      ]);
+
+      const newCount = tryOnCount + 1;
+      setTryOnCount(newCount);
+
+      if (customerId && newResultImage) {
         const { uploadImage } = await import("../lib/uploadImage");
-        const uploadedTryOnUrl = await uploadImage(data.tryOnImage);
+        const uploadedTryOnUrl = await uploadImage(newResultImage);
         if (uploadedTryOnUrl) {
           await supabase
             .from("customers")
-            .update({ tryon_image: uploadedTryOnUrl, tryon_used: true })
+            .update({
+              tryon_image: uploadedTryOnUrl,
+              tryon_used: newCount >= MAX_TRYON_PER_VISIT,
+            })
             .eq("id", customerId);
-          setTryonUsed(true);
         }
       }
     } catch (error) {
@@ -198,6 +221,12 @@ function PageContent() {
     } finally {
       setTryOnLoading(false);
     }
+  };
+
+  const removeTryOnResult = (index: number) => {
+    setTryOnResults((prev) => prev.filter((_, i) => i !== index));
+    // Luu y: xoa khoi man hinh khong hoan lai luot da dung, vi AI da chay va
+    // ton chi phi roi. tryOnCount giu nguyen.
   };
 
   const saveAsWalkIn = async () => {
@@ -437,8 +466,8 @@ function PageContent() {
                       setSelectedDesign(index);
                       if (customerId) saveSelectedDesign(index, img);
                       setDesignImage(img);
-                      setTryOnImage(null);
                       setTryOnError("");
+                      // KHONG xoa tryOnResults o day nua - giu lai de khach so sanh
                     }}
                     style={{
                       padding: "10px",
@@ -483,7 +512,7 @@ function PageContent() {
 
           <button
             onClick={tryOnNails}
-            disabled={tryOnLoading || !designImage || !image || tryonUsed}
+            disabled={tryOnLoading || !designImage || !image || tryOnCount >= MAX_TRYON_PER_VISIT}
             type="button"
             style={{
               marginTop: "22px",
@@ -498,27 +527,81 @@ function PageContent() {
           >
             {tryOnLoading ? t.tryOnLoading : t.tryOnButton}
           </button>
-          {tryonUsed && !tryOnImage && (
-            <p style={{ marginTop: "10px", color: "var(--foreground-soft)", fontSize: "14px" }}>
-              You've used your free try-on for this visit.
+          <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-soft)" }}>
+            {lang === "vi"
+              ? `Đã dùng ${tryOnCount}/${MAX_TRYON_PER_VISIT} lượt thử cho lần ghé này.`
+              : `Used ${tryOnCount}/${MAX_TRYON_PER_VISIT} try-ons for this visit.`}
+          </p>
+          {tryOnCount >= MAX_TRYON_PER_VISIT && (
+            <p style={{ marginTop: "4px", color: "var(--foreground-soft)", fontSize: "14px" }}>
+              {lang === "vi"
+                ? "Bạn đã dùng hết lượt thử miễn phí cho lần ghé này."
+                : "You've used all your free try-ons for this visit."}
             </p>
           )}
 
-          {tryOnImage && (
+          {tryOnResults.length > 0 && (
             <div style={{ marginTop: "28px" }}>
-              <h2 style={{ fontSize: "20px" }}>{t.tryOnResultTitle}</h2>
-              <img
-                src={tryOnImage}
-                alt={t.tryOnResultTitle}
+              <h2 style={{ fontSize: "20px", marginBottom: "14px" }}>{t.tryOnResultTitle}</h2>
+              <div
                 style={{
-                  width: "100%",
-                  maxWidth: "600px",
-                  borderRadius: "20px",
-                  marginTop: "15px",
-                  border: "1px solid var(--border)",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                  display: "grid",
+                  gridTemplateColumns:
+                    tryOnResults.length > 1 ? "repeat(auto-fit, minmax(220px, 1fr))" : "1fr",
+                  gap: "16px",
                 }}
-              />
+              >
+                {tryOnResults.map((res, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "18px",
+                      padding: "10px",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        marginBottom: "8px",
+                        color: "var(--foreground-soft)",
+                      }}
+                    >
+                      {t.design} {res.designIndex + 1}
+                    </div>
+                    <img
+                      src={res.image}
+                      alt={t.tryOnResultTitle}
+                      style={{
+                        width: "100%",
+                        borderRadius: "12px",
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTryOnResult(i)}
+                      style={{
+                        marginTop: "10px",
+                        width: "100%",
+                        padding: "8px",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        background: "transparent",
+                        border: "1px solid var(--accent)",
+                        borderRadius: "999px",
+                        color: "var(--accent)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {lang === "vi" ? "Xóa ảnh này" : "Delete this"}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {tryOnError && (

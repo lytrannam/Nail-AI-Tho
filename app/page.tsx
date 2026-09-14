@@ -15,6 +15,7 @@ const MAX_TRYON_PER_VISIT = 2;
 function PageContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const fileInput = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -268,6 +269,122 @@ function PageContent() {
     setCustomerId(data.id);
     setWalkInSaved(true);
   };
+
+  if (showWelcome) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          padding: "48px 20px",
+          textAlign: "center",
+          fontFamily: "var(--font-body)",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--background)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setLang(lang === "en" ? "vi" : "en")}
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            padding: "8px 16px",
+            cursor: "pointer",
+            borderRadius: "999px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--foreground)",
+            fontSize: "14px",
+          }}
+        >
+          🌐 {t.switchLang}
+        </button>
+
+        <div style={{ fontSize: "56px", marginBottom: "6px" }}>💅</div>
+        <h1
+          style={{
+            fontSize: "34px",
+            fontFamily: "var(--font-display, inherit)",
+            marginBottom: "6px",
+          }}
+        >
+          AL Nail AI
+        </h1>
+        <p style={{ fontSize: "16px", color: "var(--foreground-soft)", marginBottom: "40px" }}>
+          {lang === "vi"
+            ? "Thử mẫu nail bằng AI, chỉ trong vài giây"
+            : "Try nail designs with AI, in seconds"}
+        </p>
+
+        <div style={{ width: "100%", maxWidth: "320px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <button
+            type="button"
+            onClick={() => setShowWelcome(false)}
+            style={{
+              padding: "16px 0",
+              borderRadius: "999px",
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: "0 6px 20px rgba(255,45,120,0.3)",
+            }}
+          >
+            {lang === "vi" ? "Bắt đầu" : "Get Started"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/login";
+            }}
+            style={{
+              padding: "16px 0",
+              borderRadius: "999px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--foreground)",
+              fontSize: "16px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {lang === "vi" ? "Đăng nhập (dành cho thợ)" : "Sign In (for techs)"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowWelcome(false)}
+            style={{
+              padding: "14px 0",
+              borderRadius: "999px",
+              border: "none",
+              background: "transparent",
+              color: "var(--foreground-soft)",
+              fontSize: "14px",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            {lang === "vi" ? "Tiếp tục với tư cách khách" : "Continue as Guest"}
+          </button>
+        </div>
+
+        <p style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "36px", maxWidth: "320px" }}>
+          {lang === "vi"
+            ? "Miễn phí, không cần tạo tài khoản để dùng thử."
+            : "Free, no account needed to try it out."}
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main

@@ -405,6 +405,12 @@ function PageContent() {
             ? "Miễn phí, không cần tạo tài khoản để dùng thử."
             : "Free, no account needed to try it out."}
         </p>
+        <a
+          href="/legal"
+          style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "10px", textDecoration: "underline" }}
+        >
+          {lang === "vi" ? "Điều khoản & Quyền riêng tư" : "Terms & Privacy"}
+        </a>
       </main>
     );
   }

@@ -1,5 +1,10 @@
 export const translations = {
   en: {
+      uFilterAll: "All",
+  uFilterEasy: "Simple",
+  uFilterMedium: "Medium",
+  uFilterHard: "Detailed",
+  galleryChosenMessage: "You picked this design from the tech's profile — take a hand photo to try it now!",
       liveTryonTitle: "Live Camera Try-On",
   liveTryonSubtitle: "Put your hand in frame, pick a design, then capture a polished photo",
   liveTryonLoadingModel: "Loading hand detection model…",
@@ -243,6 +248,11 @@ export const translations = {
     lsSaveSuccess: "Loyalty settings saved.",
   },
   vi: {
+      uFilterAll: "Tất cả",
+  uFilterEasy: "Đơn giản",
+  uFilterMedium: "Vừa phải",
+  uFilterHard: "Cầu kỳ",
+  galleryChosenMessage: "Bạn đã chọn mẫu này từ hồ sơ thợ — giờ hãy chụp tay để thử ngay!",
       liveTryonTitle: "Thử màu trực tiếp qua camera",
   liveTryonSubtitle: "Đưa tay vào khung hình, chọn mẫu, rồi chụp ảnh đẹp",
   liveTryonLoadingModel: "Đang tải mô hình nhận diện tay…",

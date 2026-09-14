@@ -6,6 +6,7 @@ import { supabase } from "../../../lib/supabase";
 import { translations, Language } from "../../../lib/translations";
 
 type TechProfile = {
+  user_id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
@@ -20,7 +21,12 @@ type TechProfile = {
 type PortfolioItem = {
   id: number;
   image_url: string;
+  style: string | null;
+  color: string | null;
+  difficulty: string | null;
 };
+
+type DifficultyFilter = "all" | "easy" | "medium" | "hard";
 
 export default function PublicProfilePage() {
   const params = useParams();
@@ -30,6 +36,7 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<TechProfile | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
 
   const t = translations[lang] as any;
 
@@ -37,7 +44,7 @@ export default function PublicProfilePage() {
     const load = async () => {
       const { data: profileData } = await supabase
         .from("tech_profiles")
-        .select("username, display_name, avatar_url, bio, instagram_url, tiktok_url, facebook_url, is_public, verified")
+        .select("user_id, username, display_name, avatar_url, bio, instagram_url, tiktok_url, facebook_url, is_public, verified")
         .eq("username", username)
         .eq("is_public", true)
         .maybeSingle();
@@ -48,24 +55,13 @@ export default function PublicProfilePage() {
       }
 
       setProfile(profileData as TechProfile);
-            setProfile(profileData as TechProfile);
 
-      // Tang dem luot xem, khong can cho ket qua tra ve (chay ngam)
       supabase.rpc("increment_profile_views", { p_username: username });
 
       const { data: portfolioData } = await supabase
         .from("portfolio")
-        .select("id, image_url")
-        .eq(
-          "user_id",
-          (
-            await supabase
-              .from("tech_profiles")
-              .select("user_id")
-              .eq("username", username)
-              .single()
-          ).data?.user_id
-        )
+        .select("id, image_url, style, color, difficulty")
+        .eq("user_id", profileData.user_id)
         .order("created_at", { ascending: false });
 
       setPortfolio(portfolioData || []);
@@ -74,6 +70,17 @@ export default function PublicProfilePage() {
 
     load();
   }, [username]);
+
+  const filteredPortfolio = portfolio.filter((item) => {
+    if (difficultyFilter === "all") return true;
+    return item.difficulty === difficultyFilter;
+  });
+
+  const handlePickDesign = (imageUrl: string) => {
+    if (!profile) return;
+    const url = `/?salon=${profile.user_id}&designImage=${encodeURIComponent(imageUrl)}`;
+    window.location.href = url;
+  };
 
   if (loading) {
     return (
@@ -90,6 +97,13 @@ export default function PublicProfilePage() {
       </main>
     );
   }
+
+  const filterOptions: { id: DifficultyFilter; label: string }[] = [
+    { id: "all", label: t.uFilterAll },
+    { id: "easy", label: t.uFilterEasy },
+    { id: "medium", label: t.uFilterMedium },
+    { id: "hard", label: t.uFilterHard },
+  ];
 
   return (
     <main
@@ -170,9 +184,62 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
+      <div style={{ textAlign: "center", marginTop: "20px" }}>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = `/?salon=${profile.user_id}`;
+          }}
+          style={{
+            padding: "14px 28px",
+            borderRadius: "999px",
+            border: "none",
+            background: "var(--accent)",
+            color: "white",
+            fontSize: "15px",
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 6px 20px rgba(255,45,120,0.3)",
+          }}
+        >
+          {lang === "vi" ? "Thử mẫu của tôi ngay" : "Try my designs now"}
+        </button>
+      </div>
+
       <h2 style={{ marginTop: "40px", fontSize: "18px" }}>{t.uPortfolioHeading}</h2>
 
-      {portfolio.length === 0 ? (
+      {portfolio.length > 0 && (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+          {filterOptions.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setDifficultyFilter(opt.id)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "999px",
+                fontSize: "13px",
+                cursor: "pointer",
+                border:
+                  difficultyFilter === opt.id
+                    ? "2px solid var(--accent)"
+                    : "1px solid var(--border)",
+                background: difficultyFilter === opt.id ? "var(--accent-soft)" : "var(--surface)",
+                color: "var(--foreground)",
+                fontWeight: difficultyFilter === opt.id ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <p style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "10px" }}>
+        {lang === "vi" ? "Bấm vào 1 ảnh để mang mẫu đó về thử trên tay bạn." : "Tap a photo to bring that design home and try it on your hand."}
+      </p>
+
+      {filteredPortfolio.length === 0 ? (
         <p style={{ color: "var(--foreground-soft)", marginTop: "10px" }}>{t.uNoPortfolio}</p>
       ) : (
         <div
@@ -183,14 +250,28 @@ export default function PublicProfilePage() {
             marginTop: "16px",
           }}
         >
-          {portfolio.map((item) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+          {filteredPortfolio.map((item) => (
+            <button
               key={item.id}
-              src={item.image_url}
-              alt="Portfolio"
-              style={{ width: "100%", borderRadius: "12px", objectFit: "cover", aspectRatio: "1 / 1" }}
-            />
+              type="button"
+              onClick={() => handlePickDesign(item.image_url)}
+              style={{
+                padding: 0,
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.image_url}
+                alt="Portfolio"
+                style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1 / 1" }}
+              />
+            </button>
           ))}
         </div>
       )}

@@ -16,6 +16,7 @@ function PageContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [showWelcome, setShowWelcome] = useState(true);
+  const [cameFromGallery, setCameFromGallery] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -79,6 +80,23 @@ function PageContent() {
     loadByToken();
   }, [token]);
 
+  // Neu khach den tu Gallery (bam 1 anh tren trang ca nhan tho), URL se co
+  // ?designImage=... -> dien san mau do, bo qua buoc AI phan tich/tao moi.
+  useEffect(() => {
+    const galleryDesign = searchParams.get("designImage");
+    if (galleryDesign) {
+      const decoded = decodeURIComponent(galleryDesign);
+      setDesignImage(decoded);
+      setDesignImages([decoded]);
+      setDesignSources(["real"]);
+      setSelectedDesign(0);
+      setResult(t.galleryChosenMessage);
+      setCameFromGallery(true);
+      setShowWelcome(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const saveSelectedDesign = async (index: number, imageUrl: string) => {
     if (!customerId) return;
 
@@ -103,14 +121,19 @@ function PageContent() {
 
       reader.onload = () => {
         setImage(reader.result as string);
-        setResult("");
-        setSelectedDesign(null);
-        setDesignImage(null);
-        setDesignImages([]);
-        setDesignSources([]);
-        // Anh tay moi hoan toan -> xoa het ket qua thu cu, bat dau lai tu dau
         setTryOnResults([]);
         setTryOnError("");
+
+        if (!cameFromGallery) {
+          // Luong binh thuong: anh tay moi -> xoa het ket qua/mau cu, bat dau lai
+          setResult("");
+          setSelectedDesign(null);
+          setDesignImage(null);
+          setDesignImages([]);
+          setDesignSources([]);
+        }
+        // Neu cameFromGallery: GIU NGUYEN designImage/designImages/selectedDesign,
+        // vi khach da chon san mau tu Gallery, chi can chup tay moi la du.
       };
 
       reader.readAsDataURL(file);
@@ -521,24 +544,33 @@ function PageContent() {
             }}
           />
           <br />
-          <button
-            onClick={analyzeImage}
-            disabled={loading}
-            style={{
-              padding: "18px 32px",
-              borderRadius: "999px",
-              border: "none",
-              fontSize: "17px",
-              fontWeight: 600,
-              cursor: "pointer",
-              marginTop: "24px",
-              background: loading ? "var(--foreground-soft)" : "var(--accent)",
-              color: "white",
-              boxShadow: loading ? "none" : "0 6px 20px rgba(255,45,120,0.3)",
-            }}
-          >
-            {loading ? t.analyzing : t.viewSuggestions}
-          </button>
+          {!cameFromGallery && (
+            <button
+              onClick={analyzeImage}
+              disabled={loading}
+              style={{
+                padding: "18px 32px",
+                borderRadius: "999px",
+                border: "none",
+                fontSize: "17px",
+                fontWeight: 600,
+                cursor: "pointer",
+                marginTop: "24px",
+                background: loading ? "var(--foreground-soft)" : "var(--accent)",
+                color: "white",
+                boxShadow: loading ? "none" : "0 6px 20px rgba(255,45,120,0.3)",
+              }}
+            >
+              {loading ? t.analyzing : t.viewSuggestions}
+            </button>
+          )}
+          {cameFromGallery && (
+            <p style={{ marginTop: "16px", color: "var(--accent)", fontWeight: 600 }}>
+              {lang === "vi"
+                ? "Ảnh đã sẵn sàng! Kéo xuống để thử mẫu lên tay."
+                : "Photo ready! Scroll down to try the design on your hand."}
+            </p>
+          )}
         </div>
       )}
 
@@ -555,7 +587,9 @@ function PageContent() {
             boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
           }}
         >
-          <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>{t.suggestionsTitle}</h2>
+          <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>
+            {cameFromGallery ? (lang === "vi" ? "Mẫu bạn đã chọn" : "Your chosen design") : t.suggestionsTitle}
+          </h2>
           <p style={{ whiteSpace: "pre-wrap", color: "var(--foreground)", lineHeight: "1.6" }}>
             {result}
           </p>

@@ -26,6 +26,18 @@ const navButtonStyle: React.CSSProperties = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
 };
 
+// Lay dung header Authorization tu phien dang nhap hien tai, de gui kem
+// moi lan goi API can xac minh danh tinh (vd: send-reminder)
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) return {};
+
+  return { Authorization: `Bearer ${session.access_token}` };
+}
+
 export default function CustomersPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -58,7 +70,6 @@ export default function CustomersPage() {
         setCustomers(data);
       }
 
-      // Lay so luot xem trang ca nhan tu bang tech_profiles
       const { data: profileData } = await supabase
         .from("tech_profiles")
         .select("profile_views")
@@ -138,7 +149,6 @@ export default function CustomersPage() {
     );
   }).length;
 
-  // Khach moi: tao trong vong 30 ngay gan day
   const newCustomersCount = customers.filter((customer) => {
     if (!customer.created_at) return false;
     return (
@@ -164,19 +174,16 @@ export default function CustomersPage() {
     setSendingAll(true);
     let successCount = 0;
 
+    const authHeader = await getAuthHeader();
+
     for (const customer of customersToRemind) {
       try {
+        // CHI gui customerId - server se tu tra cuu email/ten/anh that,
+        // khong tin bat ky du lieu nao khac tu trinh duyet nua.
         const res = await fetch("/api/send-reminder", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            toEmail: customer.email,
-            customerName: customer.name,
-            oldDesignImage: customer.selected_design_image,
-            newDesignImages: (customer.all_design_images || []).filter(
-              (img) => img !== customer.selected_design_image
-            ),
-          }),
+          headers: { "Content-Type": "application/json", ...authHeader },
+          body: JSON.stringify({ customerId: customer.id }),
         });
         const data = await res.json();
         if (!data.error) successCount++;
@@ -225,7 +232,6 @@ export default function CustomersPage() {
         <h1 style={{ fontSize: "30px" }}>{t.custPageTitle}</h1>
         <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>{t.custPageSubtitle}</p>
 
-        {/* KHOI TONG QUAN - dat tren cung, giong "Your Business at a Glance" */}
         <div
           style={{
             display: "grid",
@@ -511,19 +517,12 @@ export default function CustomersPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      const authHeader = await getAuthHeader();
+                      // CHI gui customerId - server se tu tra cuu email/ten/anh that
                       const res = await fetch("/api/send-reminder", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          toEmail: customer.email,
-                          customerName: customer.name,
-                          oldDesignImage: customer.selected_design_image,
-                          newDesignImages: (
-                            customer.all_design_images || []
-                          ).filter(
-                            (img) => img !== customer.selected_design_image
-                          ),
-                        }),
+                        headers: { "Content-Type": "application/json", ...authHeader },
+                        body: JSON.stringify({ customerId: customer.id }),
                       });
                       const data = await res.json();
                       if (data.error) {

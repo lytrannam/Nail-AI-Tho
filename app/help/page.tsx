@@ -66,9 +66,54 @@ const SECTIONS_EN = [
   },
 ];
 
+type ChatMessage = {
+  role: "user" | "assistant";
+  text: string;
+};
+
 export default function HelpPage() {
   const [lang, setLang] = useState<Lang>("vi");
   const sections = lang === "vi" ? SECTIONS_VI : SECTIONS_EN;
+
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [asking, setAsking] = useState(false);
+
+  const askQuestion = async () => {
+    const q = question.trim();
+    if (!q || asking) return;
+
+    setMessages((prev) => [...prev, { role: "user", text: q }]);
+    setQuestion("");
+    setAsking(true);
+
+    try {
+      const res = await fetch("/api/support-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q, lang }),
+      });
+      const data = await res.json();
+
+      const answer =
+        data.answer ||
+        data.error ||
+        (lang === "vi" ? "Không thể trả lời lúc này." : "Could not answer right now.");
+
+      setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: lang === "vi" ? "Có lỗi xảy ra, thử lại nhé." : "Something went wrong, try again.",
+        },
+      ]);
+    } finally {
+      setAsking(false);
+    }
+  };
 
   return (
     <main
@@ -127,6 +172,83 @@ export default function HelpPage() {
           : "Overview of AL Nail AI's main features."}
       </p>
 
+      {/* KHUNG CHAT AI */}
+      <div
+        style={{
+          marginTop: "28px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "18px",
+          padding: "20px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+        }}
+      >
+        <h2 style={{ fontSize: "16px", marginBottom: "10px" }}>
+          🤖 {lang === "vi" ? "Hỏi trợ lý AI" : "Ask the AI assistant"}
+        </h2>
+
+        {messages.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                style={{
+                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "85%",
+                  padding: "10px 14px",
+                  borderRadius: "14px",
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  background: m.role === "user" ? "var(--accent)" : "var(--background)",
+                  color: m.role === "user" ? "white" : "var(--foreground)",
+                }}
+              >
+                {m.text}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") askQuestion();
+            }}
+            placeholder={
+              lang === "vi" ? "Ví dụ: Sao camera không mở được?" : "e.g. Why won't the camera open?"
+            }
+            style={{
+              flex: 1,
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "1px solid var(--border)",
+              boxSizing: "border-box",
+            }}
+          />
+          <button
+            type="button"
+            onClick={askQuestion}
+            disabled={asking}
+            style={{
+              padding: "10px 18px",
+              borderRadius: "999px",
+              border: "none",
+              background: "var(--accent)",
+              color: "white",
+              fontWeight: 600,
+              cursor: asking ? "not-allowed" : "pointer",
+              opacity: asking ? 0.6 : 1,
+              fontSize: "13px",
+            }}
+          >
+            {asking ? (lang === "vi" ? "..." : "...") : lang === "vi" ? "Hỏi" : "Ask"}
+          </button>
+        </div>
+      </div>
+
       <div style={{ marginTop: "28px", display: "flex", flexDirection: "column", gap: "16px" }}>
         {sections.map((s, i) => (
           <div
@@ -158,8 +280,8 @@ export default function HelpPage() {
         }}
       >
         {lang === "vi"
-          ? "Cần hỗ trợ thêm? Liên hệ trực tiếp qua email đã đăng ký tài khoản."
-          : "Need more help? Contact us via the email you used to sign up."}
+          ? "AI trả lời không giải quyết được vấn đề? Liên hệ trực tiếp: lytrannam82@gmail.com"
+          : "AI couldn't solve it? Contact us directly: lytrannam82@gmail.com"}
       </div>
     </main>
   );

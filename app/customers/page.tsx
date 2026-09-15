@@ -337,7 +337,7 @@ export default function CustomersPage() {
             style={navButtonStyle}
           >
             ❓ {lang === "vi" ? "Trợ giúp" : "Help"}
-     
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -346,7 +346,8 @@ export default function CustomersPage() {
             style={navButtonStyle}
           >
             💎 {lang === "vi" ? "Nâng cấp" : "Upgrade"}
-                      <button
+          </button>
+          <button
             type="button"
             onClick={() => {
               window.location.href = "/invite";
@@ -354,8 +355,6 @@ export default function CustomersPage() {
             style={navButtonStyle}
           >
             🖨️ {lang === "vi" ? "Mã QR mời thợ" : "Invite QR"}
-          </button>
-          </button>
           </button>
         </div>
 

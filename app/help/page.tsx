@@ -6,6 +6,10 @@ type Lang = "vi" | "en";
 
 const SECTIONS_VI = [
   {
+    title: "0. Đăng ký & Dùng thử",
+    text: "Tạo tài khoản bằng email + mật khẩu tại trang Đăng nhập. Sau khi đăng ký, kiểm tra email (cả mục Spam) để xác nhận trước khi đăng nhập lần đầu. Hiện app đang trong giai đoạn thử nghiệm miễn phí hoàn toàn. Xem trang Nâng cấp để biết các gói dự kiến trong tương lai.",
+  },
+  {
     title: "1. Khách của tôi",
     text: "Lưu tên, số điện thoại, email khách. Bấm vào tên khách để xem chi tiết lịch sử làm nail. Hệ thống tự nhắc khi khách quá 3 tuần chưa quay lại.",
   },
@@ -25,9 +29,17 @@ const SECTIONS_VI = [
     title: "5. Trang chủ (khách tự chọn mẫu)",
     text: "Khách tự chụp tay, AI gợi ý 4 mẫu phù hợp tông da. Khách chọn 1 mẫu và có thể thử lên tay tối đa 2 lần để so sánh trước khi quyết định.",
   },
+  {
+    title: "6. Mời thợ mới",
+    text: "Vào mục 'Mã QR mời thợ' để lấy mã QR in dán tại tiệm. Mỗi thợ quét mã sẽ tự tạo tài khoản riêng của mình (không dùng chung tài khoản).",
+  },
 ];
 
 const SECTIONS_EN = [
+  {
+    title: "0. Sign Up & Free Trial",
+    text: "Create an account with email + password on the Sign In page. After registering, check your email (including Spam) to confirm before your first login. The app is currently in a completely free testing phase. See the Pricing page for planned future plans.",
+  },
   {
     title: "1. My Customers",
     text: "Store customer names, phone numbers, and emails. Tap a name to view their visit history. The app automatically flags customers who haven't returned in 3+ weeks.",
@@ -47,6 +59,10 @@ const SECTIONS_EN = [
   {
     title: "5. Home page (customer self-service)",
     text: "Customers photograph their own hand and AI suggests 4 designs matching their skin tone. They can try up to 2 designs on their hand to compare before deciding.",
+  },
+  {
+    title: "6. Invite new techs",
+    text: "Go to 'Invite QR' to get a printable QR code for your salon. Any tech who scans it creates their own independent account (no shared accounts).",
   },
 ];
 

@@ -7,6 +7,30 @@ import { translations, Language } from "../../lib/translations";
 
 type Mode = "login" | "signup";
 
+// Danh sach cac ten mien email "dung 1 lan" pho bien nhat, hay bi loi dung
+// de tao nhieu tai khoan ao lach gioi han dung thu. Danh sach nay khong the
+// day du 100%, nhung chan duoc phan lon truong hop de gap nhat.
+const DISPOSABLE_EMAIL_DOMAINS = [
+  "mailinator.com",
+  "10minutemail.com",
+  "guerrillamail.com",
+  "tempmail.com",
+  "temp-mail.org",
+  "yopmail.com",
+  "throwawaymail.com",
+  "getnada.com",
+  "trashmail.com",
+  "sharklasers.com",
+  "fakeinbox.com",
+  "maildrop.cc",
+];
+
+function isDisposableEmail(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase().trim();
+  if (!domain) return false;
+  return DISPOSABLE_EMAIL_DOMAINS.includes(domain);
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
@@ -39,8 +63,20 @@ export default function LoginPage() {
   };
 
   const signUp = async () => {
-    setLoading(true);
     setError("");
+
+    // Chan email dung 1 lan NGAY TU DAU, truoc khi goi Supabase - tiet kiem
+    // 1 luot goi API khong can thiet, va bao loi ngay lap tuc cho nguoi dung.
+    if (isDisposableEmail(email)) {
+      setError(
+        lang === "vi"
+          ? "Vui lòng dùng địa chỉ email thật (không dùng email tạm thời)."
+          : "Please use a real email address (temporary/disposable emails are not allowed)."
+      );
+      return;
+    }
+
+    setLoading(true);
     setSignupSuccess(false);
 
     const { error } = await supabase.auth.signUp({
@@ -55,8 +91,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Vi da bat "Confirm email" trong Supabase, tai khoan moi chua the dang
-    // nhap ngay - can bam vao link xac nhan gui qua email truoc.
     setSignupSuccess(true);
   };
 

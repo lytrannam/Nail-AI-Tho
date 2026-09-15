@@ -337,6 +337,25 @@ export default function CustomersPage() {
             style={navButtonStyle}
           >
             ❓ {lang === "vi" ? "Trợ giúp" : "Help"}
+     
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/pricing";
+            }}
+            style={navButtonStyle}
+          >
+            💎 {lang === "vi" ? "Nâng cấp" : "Upgrade"}
+                      <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/invite";
+            }}
+            style={navButtonStyle}
+          >
+            🖨️ {lang === "vi" ? "Mã QR mời thợ" : "Invite QR"}
+          </button>
+          </button>
           </button>
         </div>
 

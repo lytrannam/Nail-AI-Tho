@@ -6,8 +6,63 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMinutes: number
+): Promise<boolean> {
+  const windowMs = windowMinutes * 60 * 1000;
+
+  const { data } = await supabaseAdmin
+    .from("api_rate_limits")
+    .select("count, window_start")
+    .eq("key", key)
+    .maybeSingle();
+
+  const now = Date.now();
+
+  if (!data || now - new Date(data.window_start).getTime() > windowMs) {
+    await supabaseAdmin.from("api_rate_limits").upsert({
+      key,
+      count: 1,
+      window_start: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  if (data.count >= maxRequests) {
+    return false;
+  }
+
+  await supabaseAdmin
+    .from("api_rate_limits")
+    .update({ count: data.count + 1 })
+    .eq("key", key);
+
+  return true;
+}
+
+function getClientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return "unknown";
+}
+
 export async function GET(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // Gioi han 30 lan tra cuu/IP/gio - du cho 1 khach that mo link nhieu lan,
+    // nhung chan duoc viec do mo hang loat token de "do mo" trung.
+    const allowed = await checkRateLimit(`customer-token:${ip}`, 30, 60);
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Quá nhiều yêu cầu, vui lòng thử lại sau." },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 

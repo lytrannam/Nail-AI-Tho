@@ -1,9 +1,75 @@
 import OpenAI from "openai";
+import { createClient } from "@supabase/supabase-js";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Giong het co che gioi han da dung o app/api/route.ts va app/api/try-on/route.ts
+async function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMinutes: number
+): Promise<boolean> {
+  const windowMs = windowMinutes * 60 * 1000;
+
+  const { data } = await supabaseAdmin
+    .from("api_rate_limits")
+    .select("count, window_start")
+    .eq("key", key)
+    .maybeSingle();
+
+  const now = Date.now();
+
+  if (!data || now - new Date(data.window_start).getTime() > windowMs) {
+    await supabaseAdmin.from("api_rate_limits").upsert({
+      key,
+      count: 1,
+      window_start: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  if (data.count >= maxRequests) {
+    return false;
+  }
+
+  await supabaseAdmin
+    .from("api_rate_limits")
+    .update({ count: data.count + 1 })
+    .eq("key", key);
+
+  return true;
+}
+
+function getClientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return "unknown";
+}
+
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // Toi da 30 lan gan tag/IP/ngay - rong rai hon 2 API kia mot chut vi
+    // day la tinh nang cho THO dung (upload nhieu anh Portfolio lien tuc
+    // la binh thuong), nhung van co gioi han de chan lam dung.
+    const allowed = await checkRateLimit(`portfolio-tag:${ip}`, 30, 1440);
+
+    if (!allowed) {
+      return Response.json(
+        {
+          error:
+            "Đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại vào ngày mai.",
+        },
+        { status: 429 }
+      );
+    }
+
     const { imageUrl } = await request.json();
 
     if (!imageUrl) {

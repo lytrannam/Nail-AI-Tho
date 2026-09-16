@@ -1,5 +1,7 @@
 "use client";
 
+import ProArtwork from "../components/ProArtwork";
+
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { QRCodeSVG } from "qrcode.react";
@@ -226,6 +228,7 @@ export default function ProfilePage() {
         ← {lang === "vi" ? "Quay lại" : "Back"}
       </button>
 
+      <ProArtwork variant="profile" lang={lang} />
       <h1 style={{ fontSize: "30px", marginTop: "20px" }}>{t.profileTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.profileSubtitle}</p>
 

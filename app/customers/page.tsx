@@ -1,5 +1,7 @@
 "use client";
 
+import ProArtwork from "../components/ProArtwork";
+
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
@@ -229,6 +231,7 @@ export default function CustomersPage() {
       </button>
 
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+        <ProArtwork variant="customers" lang={lang} />
         <h1 style={{ fontSize: "30px" }}>{t.custPageTitle}</h1>
         <p style={{ color: "var(--foreground-soft)", marginTop: "6px" }}>{t.custPageSubtitle}</p>
 

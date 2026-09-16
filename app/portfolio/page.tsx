@@ -1,5 +1,7 @@
 "use client";
 
+import ProArtwork from "../components/ProArtwork";
+
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { translations, Language } from "../../lib/translations";
@@ -318,6 +320,7 @@ export default function PortfolioPage() {
         ← {lang === "vi" ? "Quay lại" : "Back"}
       </button>
 
+      <ProArtwork variant="portfolio" lang={lang} />
       <h1 style={{ fontSize: "30px", marginTop: "20px" }}>{t.portfolioTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.portfolioSubtitle}</p>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import ProArtwork from "./components/ProArtwork";
+
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
@@ -358,6 +360,7 @@ function PageContent() {
               <button type="button" className="al-signin" onClick={() => { window.location.href = "/login"; }}>{lang === "vi" ? "Đăng nhập (Dành cho thợ nail)" : "Sign In (For Nail Techs)"}<span aria-hidden="true">→</span></button>
               <button type="button" className="al-guest" onClick={() => setShowWelcome(false)}>{lang === "vi" ? "Tiếp tục với tư cách khách" : "Continue as Guest"}<span aria-hidden="true">→</span></button>
             </div>
+            <ProArtwork variant="welcome" lang={lang} />
             <footer className="al-legal">{lang === "vi" ? "Bằng việc tiếp tục, bạn đồng ý với" : "By continuing, you agree to our"}<br/><a href="/legal">{lang === "vi" ? "Điều khoản dịch vụ và Chính sách quyền riêng tư" : "Terms of Service & Privacy Policy"}</a></footer>
           </section>
         </div>

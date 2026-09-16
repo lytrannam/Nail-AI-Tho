@@ -1,5 +1,7 @@
 "use client";
 
+import ProArtwork from "../components/ProArtwork";
+
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
@@ -84,6 +86,7 @@ export default function QrPage() {
         {t.smBack}
       </button>
 
+      <ProArtwork variant="qr" lang={lang} />
       <h1 style={{ fontSize: "26px" }}>{t.qrTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.qrSubtitle}</p>
 

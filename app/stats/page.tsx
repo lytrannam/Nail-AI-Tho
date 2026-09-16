@@ -1,5 +1,7 @@
 "use client";
 
+import ProArtwork from "../components/ProArtwork";
+
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
@@ -84,7 +86,8 @@ export default function StatsPage() {
 
   return (
     <main style={{ padding: "30px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Thống kê tiệm</h1>
+      <ProArtwork variant="stats" />
+      <h1>Thống kê của bạn</h1>
       <button
   type="button"
   onClick={() => {

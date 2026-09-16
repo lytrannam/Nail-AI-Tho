@@ -12,6 +12,36 @@ type TryOnResult = {
 
 const MAX_TRYON_PER_VISIT = 2;
 
+// Bound data URLs before serializing both images into the same request.
+async function prepareTryOnImage(source: string): Promise<string> {
+  if (!source.startsWith("data:")) return source;
+  const photo = new window.Image();
+  await new Promise<void>((resolve, reject) => {
+    photo.onload = () => resolve();
+    photo.onerror = () => reject(new Error("Không đọc được ảnh. Vui lòng chọn ảnh JPG hoặc PNG khác."));
+    photo.src = source;
+  });
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context || !photo.naturalWidth || !photo.naturalHeight) {
+    throw new Error("Không xử lý được ảnh trên thiết bị này.");
+  }
+  for (const edge of [1600, 1280, 1024, 800]) {
+    const scale = Math.min(1, edge / Math.max(photo.naturalWidth, photo.naturalHeight));
+    canvas.width = Math.max(1, Math.round(photo.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(photo.naturalHeight * scale));
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(photo, 0, 0, canvas.width, canvas.height);
+    for (const quality of [0.9, 0.8, 0.7]) {
+      const encoded = canvas.toDataURL("image/jpeg", quality);
+      if (encoded.startsWith("data:image/jpeg;") && encoded.length <= 1500000) return encoded;
+    }
+  }
+  throw new Error("Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn.");
+}
+
+
 function PageContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -204,18 +234,25 @@ function PageContent() {
     try {
       setTryOnError("");
 
+      const handForRequest = await prepareTryOnImage(image);
+      const designForRequest = await prepareTryOnImage(designImage);
+      const payload = JSON.stringify({ image: handForRequest, designImage: designForRequest });
+      if (new Blob([payload]).size > 3500000) throw new Error("Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn.");
       const response = await fetch("/api/try-on", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, designImage }),
+        body: payload,
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
+      if (response.status === 413) throw new Error(lang === "vi" ? "Ảnh vượt giới hạn dung lượng. Vui lòng chọn ảnh nhỏ hơn." : "The images exceed the size limit. Please choose smaller images.");
+      if (!data) throw new Error(t.tryOnError);
 
       if (!response.ok) {
         throw new Error(data.error || "Không thể thử mẫu");
       }
 
       const newResultImage = data.tryOnImage || data.image;
+      if (typeof newResultImage !== "string" || !newResultImage) throw new Error(t.tryOnError);
 
       // Them ket qua moi vao danh sach, KHONG xoa ket qua cu (de khach so sanh)
       setTryOnResults((prev) => [
@@ -241,7 +278,7 @@ function PageContent() {
       }
     } catch (error) {
       console.error(error);
-      setTryOnError(t.tryOnError);
+      setTryOnError(error instanceof Error ? error.message : t.tryOnError);
     } finally {
       setTryOnLoading(false);
     }

@@ -61,6 +61,7 @@ function getClientIp(request: Request): string {
 
 async function urlToFile(url: string, filename: string): Promise<File> {
   const response = await fetch(url);
+  if (!response.ok) throw new Error("Cannot load reference image");
   const blob = await response.blob();
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
@@ -222,9 +223,11 @@ Do not change the shape or appearance of the person's hand.
 
     const resultImage = `data:image/png;base64,${imageBase64}`;
 
+    if (new TextEncoder().encode(resultImage).length > 4000000) {
+      return Response.json({ error: "Ảnh kết quả quá lớn. Vui lòng thử lại với ảnh bàn tay đơn giản hơn." }, { status: 413 });
+    }
     return Response.json({
       image: resultImage,
-      tryOnImage: resultImage, // tuong thich voi ca 2 kieu doc du lieu tra ve o phia trang chu
     });
   } catch (error) {
     console.error("TRY-ON API ERROR:", error);

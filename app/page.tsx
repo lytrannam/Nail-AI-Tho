@@ -295,125 +295,68 @@ function PageContent() {
 
   if (showWelcome) {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          padding: "48px 20px",
-          textAlign: "center",
-          fontFamily: "var(--font-body)",
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--background)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setLang(lang === "en" ? "vi" : "en")}
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            borderRadius: "999px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--foreground)",
-            fontSize: "14px",
-          }}
-        >
-          🌐 {t.switchLang}
-        </button>
-
-        <div style={{ fontSize: "56px", marginBottom: "6px" }}>💅</div>
-        <h1
-          style={{
-            fontSize: "34px",
-            fontFamily: "var(--font-display, inherit)",
-            marginBottom: "6px",
-          }}
-        >
-          AL Nail AI
-        </h1>
-        <p style={{ fontSize: "16px", color: "var(--foreground-soft)", marginBottom: "40px" }}>
-          {lang === "vi"
-            ? "Thử mẫu nail bằng AI, chỉ trong vài giây"
-            : "Try nail designs with AI, in seconds"}
-        </p>
-
-        <div style={{ width: "100%", maxWidth: "320px", display: "flex", flexDirection: "column", gap: "12px" }}>
-          <button
-            type="button"
-            onClick={() => setShowWelcome(false)}
-            style={{
-              padding: "16px 0",
-              borderRadius: "999px",
-              border: "none",
-              background: "var(--accent)",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: "0 6px 20px rgba(255,45,120,0.3)",
-            }}
-          >
-            {lang === "vi" ? "Bắt đầu" : "Get Started"}
+      <main className="al-welcome" lang={lang}>
+        <section className="al-artwork" aria-label="AL NAIL AI">
+          {/* Keep the supplied artwork intact; real controls align with its printed buttons. */}
+          <img className="al-reference" src="/al-nail-ai-welcome.png" width={1024} height={1536} alt="" fetchPriority="high" />
+          <div className="al-sr-only">
+            <h1>AL NAIL AI</h1>
+            <p>Your Nails, Your Style, Anywhere. Beautiful Nails for Everyone.</p>
+            <ul><li>Discover Designs</li><li>Try On With AI</li><li>Save Your Looks</li></ul>
+            <p>More Than Nails. A More Beautiful You.</p>
+          </div>
+          <label className="al-language">
+            <span className="al-sr-only">{lang === "vi" ? "Ngôn ngữ" : "Language"}</span>
+            {lang === "vi" && <span className="al-language-value" aria-hidden="true">Tiếng Việt</span>}
+            <select value={lang} onChange={(event) => setLang(event.target.value as Language)}>
+              <option value="en">English</option>
+              <option value="vi">Tiếng Việt</option>
+            </select>
+          </label>
+          <button className="al-hit al-start" type="button" onClick={() => setShowWelcome(false)}>
+            <span className={lang === "vi" ? "al-translated al-pink" : "al-sr-only"}>{lang === "vi" ? "Bắt đầu →" : "Get Started"}</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "/login";
-            }}
-            style={{
-              padding: "16px 0",
-              borderRadius: "999px",
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              color: "var(--foreground)",
-              fontSize: "16px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            {lang === "vi" ? "Đăng nhập (dành cho thợ)" : "Sign In (for techs)"}
+          <button className="al-hit al-signin" type="button" onClick={() => { window.location.href = "/login"; }}>
+            <span className={lang === "vi" ? "al-translated" : "al-sr-only"}>{lang === "vi" ? "Đăng nhập (Dành cho thợ nail) →" : "Sign In (For Nail Techs)"}</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setShowWelcome(false)}
-            style={{
-              padding: "14px 0",
-              borderRadius: "999px",
-              border: "none",
-              background: "transparent",
-              color: "var(--foreground-soft)",
-              fontSize: "14px",
-              cursor: "pointer",
-              textDecoration: "underline",
-            }}
-          >
-            {lang === "vi" ? "Tiếp tục với tư cách khách" : "Continue as Guest"}
+          <button className="al-hit al-guest" type="button" onClick={() => setShowWelcome(false)}>
+            <span className={lang === "vi" ? "al-translated" : "al-sr-only"}>{lang === "vi" ? "Tiếp tục với tư cách khách →" : "Continue as Guest"}</span>
           </button>
-        </div>
-
-        <p style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "36px", maxWidth: "320px" }}>
-          {lang === "vi"
-            ? "Miễn phí, không cần tạo tài khoản để dùng thử."
-            : "Free, no account needed to try it out."}
-        </p>
-        <a
-          href="/legal"
-          style={{ fontSize: "12px", color: "var(--foreground-soft)", marginTop: "10px", textDecoration: "underline" }}
-        >
-          {lang === "vi" ? "Điều khoản & Quyền riêng tư" : "Terms & Privacy"}
-        </a>
+          <footer className="al-legal">
+            <span className="al-sr-only">By continuing, you agree to our </span>
+            <a href="/legal"><span className="al-sr-only">{lang === "vi" ? "Điều khoản dịch vụ và Chính sách quyền riêng tư" : "Terms of Service and Privacy Policy"}</span></a>
+          </footer>
+        </section>
+        <style jsx>{`
+          .al-welcome { min-height:100vh; min-height:100svh; margin:0; padding:0; display:flex; align-items:flex-start; justify-content:center; background:#fbd5e3; }
+          .al-artwork { position:relative; width:100%; max-width:680px; margin:0 auto; container-type:inline-size; }
+          .al-reference { display:block; width:100%; height:auto; }
+          .al-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+          .al-hit { position:absolute; left:17.8%; width:64.5%; height:5.5%; border:0; padding:0; border-radius:999px; background:transparent; cursor:pointer; color:#121015; font-family:Arial,sans-serif; }
+          .al-start { top:69.8%; }
+          .al-signin { top:76.15%; }
+          .al-guest { top:82.4%; }
+          .al-hit:hover { box-shadow:0 0 0 2px #cf216770,0 4px 16px #a9284820; }
+          .al-hit:focus-visible,.al-legal a:focus-visible { outline:3px solid #88123e; outline-offset:3px; }
+          .al-translated { position:absolute; inset:1px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:#fffafb; font-size:2.7cqw; font-weight:600; }
+          .al-pink { background:#f51b70; color:white; font-size:3.2cqw; }
+          .al-language { position:absolute; left:76.6%; top:1.55%; width:20.4%; height:4.4%; border-radius:999px; cursor:pointer; }
+          .al-language select { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+          .al-language:focus-within { outline:3px solid #88123e; outline-offset:2px; }
+          .al-language-value { position:absolute; top:22%; left:31%; right:17%; bottom:20%; display:flex; align-items:center; justify-content:center; background:#ffedf5; color:#181018; white-space:nowrap; font-family:Arial,sans-serif; font-size:2.05cqw; }
+          .al-legal { position:absolute; top:89.3%; left:30%; width:40%; height:4%; }
+          .al-legal a { display:block; width:100%; height:100%; border-radius:3px; }
+          @media(forced-colors:active) {
+            .al-hit { background:ButtonFace; color:ButtonText; border:1px solid ButtonText; }
+            .al-hit .al-sr-only,.al-legal .al-sr-only { position:static; width:auto; height:auto; clip:auto; white-space:normal; }
+            .al-legal { background:Canvas; color:CanvasText; }
+            .al-language select { opacity:1; }
+          }
+        `}</style>
       </main>
     );
   }
+
 
   return (
     <main

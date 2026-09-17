@@ -22,7 +22,7 @@ export default function ProArtwork({ variant, lang = "vi" }: { variant: keyof ty
         <p className={styles.eyebrow}>AL NAIL AI · FOR NAIL ARTISTS</p>
         <h2>{text[vi ? 0 : 1]}</h2>
         <p className={styles.description}>{text[vi ? 2 : 3]}</p>
-        {variant === "welcome" && <Link className={styles.link} href="/login">{vi ? "Vào không gian thợ nail" : "Enter your artist space"}<span aria-hidden="true"> →</span></Link>}
+        {variant === "welcome" && <Link className={styles.link} href="/pro">{vi ? "Vào không gian thợ nail" : "Enter your artist space"}<span aria-hidden="true"> →</span></Link>}
       </div>
       <div className={styles.art}>
         <Image src={`/pro-assets/${source}`} alt={vi ? "Ảnh minh họa mẫu nail hồng với chi tiết trang trí tinh tế" : "Illustrative pink manicure with delicate nail art"} fill sizes="(max-width: 520px) 120px, 260px" style={{ objectFit: "cover" }} />

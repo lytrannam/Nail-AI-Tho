@@ -357,7 +357,7 @@ function PageContent() {
             <input ref={fileInput} type="file" accept="image/*" capture="environment" hidden onChange={(event) => { if (!event.target.files?.[0]) return; handleImage(event); setShowWelcome(false); }} />
             <div className="al-actions">
               <button type="button" className="al-primary" onClick={() => setShowWelcome(false)}>{lang === "vi" ? "Bắt đầu" : "Get Started"}<span aria-hidden="true">→</span></button>
-              <button type="button" className="al-signin" onClick={() => { window.location.href = "/login"; }}>{lang === "vi" ? "Đăng nhập (Dành cho thợ nail)" : "Sign In (For Nail Techs)"}<span aria-hidden="true">→</span></button>
+              <button type="button" className="al-signin" onClick={() => { window.location.href = "/pro"; }}>{lang === "vi" ? "Đăng nhập (Dành cho thợ nail)" : "Sign In (For Nail Techs)"}<span aria-hidden="true">→</span></button>
               <button type="button" className="al-guest" onClick={() => setShowWelcome(false)}>{lang === "vi" ? "Tiếp tục với tư cách khách" : "Continue as Guest"}<span aria-hidden="true">→</span></button>
             </div>
             <ProArtwork variant="welcome" lang={lang} />

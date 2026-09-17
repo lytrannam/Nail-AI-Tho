@@ -1,9 +1,11 @@
 "use client";
 
+import { useProLanguage } from "../../lib/pro-language";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { translations, Language } from "../../lib/translations";
+import { translations } from "../../lib/translations";
 
 type Mode = "login" | "signup";
 
@@ -39,7 +41,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [lang, setLang] = useState<Language>("vi");
+  const [lang, setLang] = useProLanguage();
 
   const t = translations[lang];
 
@@ -59,7 +61,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/customers");
+    router.push("/dashboard");
   };
 
   const signUp = async () => {

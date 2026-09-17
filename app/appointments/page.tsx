@@ -1,9 +1,11 @@
 "use client";
 
+import { useProLanguage } from "../../lib/pro-language";
+
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { translations, Language } from "../../lib/translations";
+import { translations } from "../../lib/translations";
 
 type Appointment = {
   id: number;
@@ -27,7 +29,7 @@ function AppointmentsContent() {
   const [customer, setCustomer] = useState<CustomerBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [lang, setLang] = useState<Language>("vi");
+  const [lang, setLang] = useProLanguage();
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -168,14 +170,14 @@ function AppointmentsContent() {
 
   if (loading) {
     return (
-      <main style={{ padding: "40px 20px", color: "var(--foreground-soft)" }}>
+      <main className="pro-legacy" style={{ padding: "40px 20px", color: "var(--foreground-soft)" }}>
         {t.apptLoading}
       </main>
     );
   }
 
   return (
-    <main
+    <main className="pro-legacy"
       style={{
         padding: "48px 20px",
         fontFamily: "var(--font-body)",
@@ -364,7 +366,7 @@ function AppointmentsContent() {
 
 export default function AppointmentsPage() {
   return (
-    <Suspense fallback={<main style={{ padding: "30px" }}>Loading...</main>}>
+    <Suspense fallback={<main className="pro-legacy" style={{ padding: "30px" }}>Loading...</main>}>
       <AppointmentsContent />
     </Suspense>
   );

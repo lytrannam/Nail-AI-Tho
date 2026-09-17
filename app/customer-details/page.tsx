@@ -1,9 +1,11 @@
 "use client";
 
+import { useProLanguage } from "../../lib/pro-language";
+
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { translations, Language } from "../../lib/translations";
+import { translations } from "../../lib/translations";
 
 type CustomerData = {
   id: string;
@@ -15,7 +17,7 @@ type CustomerData = {
 function CustomerDetailsContent() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
-  const [lang, setLang] = useState<Language>("vi");
+  const [lang, setLang] = useProLanguage();
 
   const [customer, setCustomer] = useState<CustomerData | null>(null);
 
@@ -100,7 +102,7 @@ function CustomerDetailsContent() {
   };
 
   return (
-    <main
+    <main className="pro-legacy"
       style={{
         padding: "48px 20px",
         fontFamily: "var(--font-body)",
@@ -260,7 +262,7 @@ function CustomerDetailsContent() {
 
 export default function CustomerDetailsPage() {
   return (
-    <Suspense fallback={<main style={{ padding: "40px 20px" }}>Loading...</main>}>
+    <Suspense fallback={<main className="pro-legacy" style={{ padding: "40px 20px" }}>Loading...</main>}>
       <CustomerDetailsContent />
     </Suspense>
   );

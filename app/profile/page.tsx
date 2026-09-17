@@ -1,11 +1,13 @@
 "use client";
 
-import ProArtwork from "../components/ProArtwork";
+import { useProLanguage } from "../../lib/pro-language";
+
+
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { QRCodeSVG } from "qrcode.react";
-import { translations, Language } from "../../lib/translations";
+import { translations } from "../../lib/translations";
 
 type TechProfile = {
   user_id: string;
@@ -30,10 +32,11 @@ function slugify(input: string): string {
 }
 
 export default function ProfilePage() {
-  const [lang, setLang] = useState<Language>("vi");
+  const [lang] = useProLanguage();
   const [userId, setUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -73,6 +76,7 @@ export default function ProfilePage() {
 
       if (error) {
         console.error(error);
+        setLoadError(true);
       }
 
       if (data) {
@@ -169,11 +173,13 @@ export default function ProfilePage() {
 
   if (!authChecked || loading) {
     return (
-      <main style={{ padding: "40px 20px", fontFamily: "Arial, sans-serif" }}>
+      <main className="pro-legacy" style={{ padding: "40px 20px", fontFamily: "Arial, sans-serif" }}>
         <p>Loading... / Đang tải...</p>
       </main>
     );
   }
+
+  if (loadError) return <main className="pro-legacy"><section className="pro-panel" role="alert"><h1>{lang === "vi" ? "Chưa tải được hồ sơ" : "Unable to load your profile"}</h1><p>{lang === "vi" ? "Thông tin cũ vẫn được giữ nguyên. Hãy tải lại trang trước khi chỉnh sửa." : "Your existing details are unchanged. Reload before editing your profile."}</p><button className="pro-primary" onClick={() => window.location.reload()}>{lang === "vi" ? "Thử lại" : "Retry"}</button></section></main>;
 
   const publicUrl =
     typeof window !== "undefined"
@@ -181,7 +187,7 @@ export default function ProfilePage() {
       : "";
 
   return (
-    <main
+    <main className="pro-legacy"
       style={{
         padding: "48px 20px",
         fontFamily: "var(--font-body)",
@@ -190,24 +196,6 @@ export default function ProfilePage() {
         margin: "0 auto",
       }}
     >
-      <button
-        type="button"
-        onClick={() => setLang(lang === "en" ? "vi" : "en")}
-        style={{
-          position: "absolute",
-          top: "20px",
-          right: "20px",
-          padding: "8px 16px",
-          cursor: "pointer",
-          borderRadius: "999px",
-          border: "1px solid var(--border)",
-          background: "var(--surface)",
-          color: "var(--foreground)",
-          fontSize: "14px",
-        }}
-      >
-        🌐 {t.switchLang}
-      </button>
 
       <button
         type="button"
@@ -227,8 +215,6 @@ export default function ProfilePage() {
       >
         ← {lang === "vi" ? "Quay lại" : "Back"}
       </button>
-
-      <ProArtwork variant="profile" lang={lang} />
       <h1 style={{ fontSize: "30px", marginTop: "20px" }}>{t.profileTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.profileSubtitle}</p>
 

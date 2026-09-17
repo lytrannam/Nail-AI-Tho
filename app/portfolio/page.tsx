@@ -1,10 +1,12 @@
 "use client";
 
-import ProArtwork from "../components/ProArtwork";
+import { useProLanguage } from "../../lib/pro-language";
+
+
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { translations, Language } from "../../lib/translations";
+import { translations } from "../../lib/translations";
 import QRCode from "qrcode";
 
 type PortfolioItem = {
@@ -36,9 +38,10 @@ export default function PortfolioPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState(false);
   const [confirmedOwnWork, setConfirmedOwnWork] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
-  const [lang, setLang] = useState<Language>("vi");
+  const [lang] = useProLanguage();
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [techUsername, setTechUsername] = useState<string | null>(null);
@@ -67,12 +70,13 @@ export default function PortfolioPage() {
       setUserId(user.id);
       setAuthChecked(true);
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("portfolio")
         .select("id, image_url, style, color, skin_tone_group, difficulty")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
+      setLoadError(!!error);
       setPortfolio(sortPortfolio(data || []));
       const { data: profileData } = await supabase
         .from("tech_profiles")
@@ -122,7 +126,7 @@ export default function PortfolioPage() {
         });
 
         const data = await res.json();
-        if (data.error) continue;
+        // Keep the uploaded work even if automatic tags are temporarily unavailable.
 
         const tags = data.tags || {};
 
@@ -253,7 +257,7 @@ export default function PortfolioPage() {
     const confirmed = window.confirm(t.portfolioDeleteConfirm);
     if (!confirmed) return;
 
-    const { error } = await supabase.from("portfolio").delete().eq("id", id);
+    const { error } = await supabase.from("portfolio").delete().eq("id", id).eq("user_id", userId);
 
     if (error) {
       alert(t.portfolioDeleteError);
@@ -266,14 +270,14 @@ export default function PortfolioPage() {
 
   if (!authChecked) {
     return (
-      <main style={{ padding: "40px 20px", fontFamily: "Arial, sans-serif" }}>
+      <main className="pro-legacy" style={{ padding: "40px 20px", fontFamily: "Arial, sans-serif" }}>
         <p>Loading... / Đang tải...</p>
       </main>
     );
   }
 
   return (
-    <main
+    <main className="pro-legacy"
       style={{
         padding: "48px 20px",
         fontFamily: "var(--font-body)",
@@ -282,24 +286,6 @@ export default function PortfolioPage() {
         margin: "0 auto",
       }}
     >
-      <button
-        type="button"
-        onClick={() => setLang(lang === "en" ? "vi" : "en")}
-        style={{
-          position: "absolute",
-          top: "20px",
-          right: "20px",
-          padding: "8px 16px",
-          cursor: "pointer",
-          borderRadius: "999px",
-          border: "1px solid var(--border)",
-          background: "var(--surface)",
-          color: "var(--foreground)",
-          fontSize: "14px",
-        }}
-      >
-        🌐 {t.switchLang}
-      </button>
 
       <button
         type="button"
@@ -319,8 +305,6 @@ export default function PortfolioPage() {
       >
         ← {lang === "vi" ? "Quay lại" : "Back"}
       </button>
-
-      <ProArtwork variant="portfolio" lang={lang} />
       <h1 style={{ fontSize: "30px", marginTop: "20px" }}>{t.portfolioTitle}</h1>
       <p style={{ color: "var(--foreground-soft)", marginTop: "8px" }}>{t.portfolioSubtitle}</p>
 
@@ -389,6 +373,8 @@ export default function PortfolioPage() {
       {uploading && <p style={{ color: "var(--foreground-soft)" }}>{t.portfolioUploading}</p>}
       {message && <p style={{ color: "var(--accent)", fontWeight: 600 }}>{message}</p>}
 
+      {loadError && <p role="alert" className="pro-error">{lang === "vi" ? "Chưa tải được bộ sưu tập. Hãy tải lại trang để thử lại." : "Unable to load your portfolio. Reload the page to try again."}</p>}
+      {!loadError && portfolio.length === 0 && <section className="pro-panel pro-empty"><h2>{lang === "vi" ? "Bộ sưu tập bắt đầu từ bạn" : "Your collection starts with you"}</h2><p>{lang === "vi" ? "Thêm ảnh tác phẩm đầu tiên bằng nút tải ảnh bên trên." : "Use the upload button above to add your first nail design."}</p></section>}
       <h2 style={{ marginTop: "44px", fontSize: "22px" }}>
         {t.portfolioSavedHeading} ({portfolio.length})
       </h2>

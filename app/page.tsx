@@ -12,6 +12,10 @@ type TryOnResult = {
   image: string;
 };
 
+type FinalizeImage =
+  | { kind: "uploaded"; path: string }
+  | { kind: "reused"; url: string };
+
 const MAX_TRYON_PER_VISIT = 2;
 
 // Bound data URLs before serializing both images into the same request.
@@ -43,6 +47,55 @@ async function prepareTryOnImage(source: string): Promise<string> {
   throw new Error("Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn.");
 }
 
+// Chuyen data URL (dang "data:<mime>;base64,<data>") thanh Blob. Tu choi
+// data URL sai cau truc thay vi am tham dung MIME mac dinh - loi phai duoc
+// bao ra ngoai de saveAsWalkIn dung lai va bao cho khach, khong tiep tuc
+// voi du lieu khong dang tin cay.
+function dataUrlToBlob(dataUrl: string): Blob {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+
+  if (!match) {
+    throw new Error("Invalid data URL structure.");
+  }
+
+  const mimeType = match[1];
+  const base64Data = match[2];
+
+  let byteCharacters: string;
+
+  try {
+    byteCharacters = atob(base64Data);
+  } catch {
+    throw new Error("Invalid base64 data.");
+  }
+
+  const byteNumbers = new Array(byteCharacters.length);
+
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+
+  return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+}
+
+// Anh xa ma loi HTTP tu prepare/finalize sang thong bao tieng Anh ngan gon,
+// khong tiet lo chi tiet ky thuat/noi bo cho khach.
+function mapErrorStatus(status: number): string {
+  switch (status) {
+    case 400:
+      return "Please check your information and try again.";
+    case 404:
+      return "We couldn't find this nail tech's profile.";
+    case 409:
+      return "We couldn't complete this request. Please try again.";
+    case 422:
+      return "One of the images couldn't be used. Please try again.";
+    case 429:
+      return "Too many attempts. Please wait a moment and try again.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
+}
 
 function PageContent() {
   const searchParams = useSearchParams();
@@ -78,6 +131,7 @@ function PageContent() {
   const [walkInPhone, setWalkInPhone] = useState("");
   const [walkInSaving, setWalkInSaving] = useState(false);
   const [walkInSaved, setWalkInSaved] = useState(false);
+  const walkInSavingRef = useRef(false);
 
   const t = translations[lang];
 
@@ -293,43 +347,198 @@ function PageContent() {
   };
 
   const saveAsWalkIn = async () => {
+    // Khoa dong bo - chan double-submit tuc thi, khong phu thuoc chu ky render
+    // cua React (setWalkInSaving la bat dong bo, ref thi khong).
+    if (walkInSavingRef.current) return;
+
     if (!walkInName.trim() || !walkInPhone.trim()) {
       alert("Vui lòng nhập tên và số điện thoại.");
       return;
     }
 
-    setWalkInSaving(true);
-
-    const { data: userData } = await supabase.auth.getUser();
-    const salonParam = searchParams.get("salon");
-
-    const newToken =
-      Math.random().toString(36).slice(2) + Date.now().toString(36);
-
-    const { data, error } = await supabase
-      .from("customers")
-      .insert({
-        name: walkInName.trim(),
-        phone: walkInPhone.trim(),
-        user_id: salonParam || userData?.user?.id,
-        session_token: newToken,
-        selected_design: selectedDesign !== null ? `Mẫu ${selectedDesign + 1}` : null,
-        selected_design_image: designImage,
-        all_design_images: designImages,
-      })
-      .select("id")
-      .single();
-
-    setWalkInSaving(false);
-
-    if (error) {
-      console.error(error);
-      alert("Không thể lưu thông tin. Vui lòng thử lại.");
+    if (designImages.length === 0 || designImages.length > 4) {
+      alert("Something went wrong. Please try again.");
       return;
     }
 
-    setCustomerId(data.id);
-    setWalkInSaved(true);
+    if (
+      typeof selectedDesign !== "number" ||
+      !Number.isInteger(selectedDesign) ||
+      selectedDesign < 0 ||
+      selectedDesign >= designImages.length
+    ) {
+      alert("Please choose a design first.");
+      return;
+    }
+
+    walkInSavingRef.current = true;
+    setWalkInSaving(true);
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const salonParam = searchParams.get("salon");
+      const salonRef = salonParam || userData?.user?.id;
+
+      if (!salonRef) {
+        alert("Please scan the nail tech's QR code to continue.");
+        return;
+      }
+
+      // Phan loai TINH toan bo designImages theo dung thu tu hien thi,
+      // khong dung designSources de quyet dinh upload hay khong.
+      const classified = designImages.map((img) => {
+        if (typeof img === "string" && img.startsWith("data:image/")) {
+          return { type: "toUpload" as const, raw: img };
+        }
+        if (typeof img === "string" && img.startsWith("https://")) {
+          return { type: "reused" as const, url: img };
+        }
+        return { type: "invalid" as const };
+      });
+
+      if (classified.some((c) => c.type === "invalid")) {
+        alert("One of the designs couldn't be used. Please try again.");
+        return;
+      }
+
+      const uploadCount = classified.filter((c) => c.type === "toUpload").length;
+
+      const prepareRes = await fetch("/api/uploads/walk-in/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ salonRef, count: uploadCount }),
+      });
+      const prepareData = await prepareRes.json().catch(() => null);
+
+      if (!prepareRes.ok || !prepareData) {
+        alert(mapErrorStatus(prepareRes.status));
+        return;
+      }
+
+      const { batchId, uploads } = prepareData as {
+        batchId?: unknown;
+        uploads?: unknown;
+      };
+
+      const UUID_PATTERN =
+        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+      if (typeof batchId !== "string" || !UUID_PATTERN.test(batchId)) {
+        alert("Something went wrong. Please try again.");
+        return;
+      }
+
+      if (!Array.isArray(uploads) || uploads.length !== uploadCount) {
+        alert("Something went wrong. Please try again.");
+        return;
+      }
+
+      const uploadSlots: { path: string; token: string }[] = [];
+
+      for (const slot of uploads) {
+        const candidate = slot as { path?: unknown; token?: unknown };
+        const path = typeof candidate.path === "string" ? candidate.path.trim() : "";
+        const uploadToken = typeof candidate.token === "string" ? candidate.token.trim() : "";
+
+        if (path.length === 0 || uploadToken.length === 0) {
+          alert("Something went wrong. Please try again.");
+          return;
+        }
+
+        uploadSlots.push({ path, token: uploadToken });
+      }
+
+      // Nen anh AI + upload qua signed URL, giu dung thu tu goc cua designImages
+      const finalImages: FinalizeImage[] = [];
+      let uploadIndex = 0;
+
+      for (const item of classified) {
+        if (item.type === "toUpload") {
+          const compressed = await prepareTryOnImage(item.raw);
+
+          if (typeof compressed !== "string" || !compressed.startsWith("data:image/jpeg")) {
+            alert("We couldn't process one of the images. Please try again.");
+            return;
+          }
+
+          let blob: Blob;
+
+          try {
+            blob = dataUrlToBlob(compressed);
+          } catch {
+            alert("We couldn't process one of the images. Please try again.");
+            return;
+          }
+
+          if (
+            blob.type !== "image/jpeg" ||
+            blob.size <= 0 ||
+            blob.size > 1_500_000
+          ) {
+            alert("We couldn't process one of the images. Please try again.");
+            return;
+          }
+
+          const slot = uploadSlots[uploadIndex];
+          uploadIndex++;
+
+          const { error: uploadError } = await supabase.storage
+            .from("walk-in-designs")
+            .uploadToSignedUrl(slot.path, slot.token, blob, {
+              contentType: "image/jpeg",
+            });
+
+          if (uploadError) {
+            alert("We couldn't upload one of the images. Please try again.");
+            return;
+          }
+
+          finalImages.push({ kind: "uploaded", path: slot.path });
+        } else if (item.type === "reused") {
+          finalImages.push({ kind: "reused", url: item.url });
+        }
+      }
+
+      const finalizeRes = await fetch("/api/customers/walk-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          salonRef,
+          name: walkInName.trim(),
+          phone: walkInPhone.trim(),
+          batchId,
+          images: finalImages,
+          selectedIndex: selectedDesign,
+        }),
+      });
+      const finalizeData = await finalizeRes.json().catch(() => null);
+
+      if (!finalizeRes.ok || !finalizeData?.success) {
+        alert(mapErrorStatus(finalizeRes.status));
+        return;
+      }
+
+      if (
+        typeof finalizeData.customerId !== "number" ||
+        !Number.isSafeInteger(finalizeData.customerId) ||
+        finalizeData.customerId <= 0
+      ) {
+        alert("Something went wrong. Please try again.");
+        return;
+      }
+
+      setCustomerId(finalizeData.customerId);
+      setWalkInSaved(true);
+    } catch (err) {
+      console.error(
+        "saveAsWalkIn failed:",
+        err instanceof Error ? err.message : "unknown error"
+      );
+      alert("Something went wrong. Please try again.");
+    } finally {
+      walkInSavingRef.current = false;
+      setWalkInSaving(false);
+    }
   };
 
   if (showWelcome) {

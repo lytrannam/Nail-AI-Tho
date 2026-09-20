@@ -189,6 +189,271 @@ function logDiagnosticStep(
   }
 }
 
+// TAM THOI - quan sat loi mang THAT truoc khi postgrest-js lam phang
+// cau truc "cause" thanh PostgrestError (co the chuyen 1 phan noi dung
+// sang chuoi "details", nhung mat cau truc cause/errors[] co the duyet
+// duoc). diagnosticFetch chi quan sat va PHAI throw lai dung loi ban
+// dau, khong thay doi response/hanh vi. Duyet loi long nhau (cause,
+// AggregateError.errors[]) voi gioi han do sau va so phan tu, chong
+// vong lap bang WeakSet. Khong log URL/host/header/body/salonRef/IP/
+// token/path.
+const SAFE_RAW_ERROR_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ECONNRESET",
+  "ABORT_ERR",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+]);
+
+function collectDiagnosticStrings(
+  error: unknown,
+  depth: number,
+  visited: WeakSet<object>,
+  maxElements: number,
+  acc: string[],
+  nodesVisited: { count: number } = { count: 0 }
+): void {
+  const maxNodes = 8;
+
+  if (depth > 3) return;
+  if (acc.length >= maxElements) return;
+  if (nodesVisited.count >= maxNodes) return;
+  if (!error || typeof error !== "object") return;
+  if (visited.has(error)) return;
+
+  visited.add(error);
+  nodesVisited.count += 1;
+
+  const candidate = error as {
+    name?: unknown;
+    message?: unknown;
+    code?: unknown;
+    cause?: unknown;
+    errors?: unknown;
+  };
+
+  if (typeof candidate.name === "string" && acc.length < maxElements) {
+    acc.push(candidate.name);
+  }
+
+  if (typeof candidate.message === "string" && acc.length < maxElements) {
+    acc.push(candidate.message);
+  }
+
+  if (typeof candidate.code === "string" && acc.length < maxElements) {
+    acc.push(candidate.code);
+  }
+
+  if (Array.isArray(candidate.errors)) {
+    for (const subError of candidate.errors.slice(0, maxNodes)) {
+      if (acc.length >= maxElements) break;
+      if (nodesVisited.count >= maxNodes) break;
+
+      collectDiagnosticStrings(
+        subError,
+        depth + 1,
+        visited,
+        maxElements,
+        acc,
+        nodesVisited
+      );
+    }
+  }
+
+  if (
+    candidate.cause !== undefined &&
+    acc.length < maxElements &&
+    nodesVisited.count < maxNodes
+  ) {
+    collectDiagnosticStrings(
+      candidate.cause,
+      depth + 1,
+      visited,
+      maxElements,
+      acc,
+      nodesVisited
+    );
+  }
+}
+
+// Dung lai chinh xac 11 nhan da duyet truoc do - khong them nhan moi, chi
+// doi nguon du lieu tu "candidate.message/details/hint" (bi mat cau truc
+// cause khi postgrest-js lam phang) sang "chuoi thu thap truc tiep tu cay
+// loi goc, truoc khi bi lam phang".
+function classifyRawFetchError(error: unknown): DiagnosticErrorLabel {
+  const collected: string[] = [];
+  collectDiagnosticStrings(error, 0, new WeakSet<object>(), 8, collected);
+  const combined = collected.join(" ").toLowerCase();
+
+  if (combined.includes("enotfound") || combined.includes("getaddrinfo")) {
+    return "dns_not_found";
+  }
+  if (combined.includes("econnrefused")) {
+    return "connection_refused";
+  }
+  if (
+    combined.includes("etimedout") ||
+    combined.includes("timeout") ||
+    combined.includes("timed out")
+  ) {
+    return "connection_timed_out";
+  }
+  if (
+    combined.includes("socket hang up") ||
+    combined.includes("socket closed") ||
+    combined.includes("econnreset") ||
+    combined.includes("connection reset") ||
+    combined.includes("network socket disconnected")
+  ) {
+    return "socket_closed";
+  }
+  if (
+    combined.includes("certificate") ||
+    combined.includes("self signed") ||
+    combined.includes("unable to verify") ||
+    combined.includes("tls") ||
+    combined.includes("ssl")
+  ) {
+    return "tls_certificate";
+  }
+  if (combined.includes("aggregateerror")) {
+    return "aggregate_error";
+  }
+  if (combined.includes("invalid api key")) {
+    return "invalid_api_key";
+  }
+  if (combined.includes("invalid jwt") || combined.includes("jwt expired")) {
+    return "jwt_error";
+  }
+  if (combined.includes("invalid url")) {
+    return "invalid_url";
+  }
+  if (combined.includes("fetch failed")) {
+    return "fetch_failed";
+  }
+
+  return "unknown";
+}
+
+// Tim code an toan trong cay loi (goc, cause, errors[]) voi gioi han do
+// sau/so node/chong vong lap giong collectDiagnosticStrings. CHI tra ve
+// code neu khop dung allowlist co dinh - khong bao gio tra nguyen van
+// code tuy y tu loi that.
+function findSaferRawErrorCode(
+  error: unknown,
+  depth: number,
+  visited: WeakSet<object>,
+  nodesVisited: { count: number }
+): string | undefined {
+  const maxNodes = 8;
+
+  if (depth > 3) return undefined;
+  if (nodesVisited.count >= maxNodes) return undefined;
+  if (!error || typeof error !== "object") return undefined;
+  if (visited.has(error)) return undefined;
+
+  visited.add(error);
+  nodesVisited.count += 1;
+
+  const candidate = error as {
+    code?: unknown;
+    cause?: unknown;
+    errors?: unknown;
+  };
+
+  if (
+    typeof candidate.code === "string" &&
+    SAFE_RAW_ERROR_CODES.has(candidate.code)
+  ) {
+    return candidate.code;
+  }
+
+  if (Array.isArray(candidate.errors)) {
+    for (const subError of candidate.errors.slice(0, maxNodes)) {
+      if (nodesVisited.count >= maxNodes) break;
+
+      const found = findSaferRawErrorCode(
+        subError,
+        depth + 1,
+        visited,
+        nodesVisited
+      );
+
+      if (found !== undefined) {
+        return found;
+      }
+    }
+  }
+
+  if (candidate.cause !== undefined && nodesVisited.count < maxNodes) {
+    return findSaferRawErrorCode(
+      candidate.cause,
+      depth + 1,
+      visited,
+      nodesVisited
+    );
+  }
+
+  return undefined;
+}
+
+function extractSafeRawErrorCode(error: unknown): string {
+  return (
+    findSaferRawErrorCode(
+      error,
+      0,
+      new WeakSet<object>(),
+      { count: 0 }
+    ) ?? "unknown"
+  );
+}
+
+// originalFetch duoc giu tham chieu TRUOC khi dinh nghia diagnosticFetch,
+// nen than ham ben duoi khong the tu goi lai chinh no - khong de quy.
+function createDiagnosticFetch(requestId: string): typeof fetch {
+  const originalFetch = globalThis.fetch.bind(globalThis);
+
+  return async (
+    input: RequestInfo | URL,
+    init?: RequestInit
+  ): Promise<Response> => {
+    const start = Date.now();
+    let response: Response;
+
+    try {
+      response = await originalFetch(input, init);
+    } catch (error: unknown) {
+      try {
+        const category = classifyRawFetchError(error);
+        const code = extractSafeRawErrorCode(error);
+
+        console.error(
+          `[walkin-prepare-diagnostic] id=${requestId} step=rawFetch durationMs=${Date.now() - start} outcome=network_error errorCategory=${category} errorCode=${code}`
+        );
+      } catch {
+        // Diagnostic logging must never replace the original error.
+      }
+
+      throw error;
+    }
+
+    try {
+      console.log(
+        `[walkin-prepare-diagnostic] id=${requestId} step=rawFetch durationMs=${Date.now() - start} outcome=${response.ok ? "http_ok" : "http_error"} httpStatus=${response.status}`
+      );
+    } catch {
+      // Diagnostic logging must never lose a valid Response.
+    }
+
+    return response;
+  };
+}
+
 export async function POST(request: Request) {
   const diagnosticRequestId = crypto.randomUUID();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -201,7 +466,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    global: { fetch: createDiagnosticFetch(diagnosticRequestId) },
+  });
 
   // Cung Postgres-backed rate limiter dung o try-on/route.ts (ham long ben
   // trong de dung chung 1 the hien supabaseAdmin qua closure, tranh loi
@@ -233,13 +500,19 @@ export async function POST(request: Request) {
 
     const now = Date.now();
 
-    if (!data || now - new Date(data.window_start).getTime() > windowMs){
+    if (
+      !data ||
+      now - new Date(data.window_start).getTime() > windowMs
+    ) {
       const upsertStart = Date.now();
-      const { error: upsertError } = await supabaseAdmin.from("api_rate_limits").upsert({
-        key,
-        count: 1,
-        window_start: new Date().toISOString(),
-      });
+
+      const { error: upsertError } = await supabaseAdmin
+        .from("api_rate_limits")
+        .upsert({
+          key,
+          count: 1,
+          window_start: new Date().toISOString(),
+        });
 
       logDiagnosticStep(
         diagnosticRequestId,
@@ -256,6 +529,7 @@ export async function POST(request: Request) {
     }
 
     const updateStart = Date.now();
+
     const { error: updateError } = await supabaseAdmin
       .from("api_rate_limits")
       .update({
@@ -278,6 +552,7 @@ export async function POST(request: Request) {
   ): Promise<string | null> {
     if (UUID_PATTERN.test(salonRef)) {
       const userIdStepStart = Date.now();
+
       const { data, error: userIdError } = await supabaseAdmin
         .from("tech_profiles")
         .select("user_id")
@@ -303,6 +578,7 @@ export async function POST(request: Request) {
     }
 
     const usernameStepStart = Date.now();
+
     const { data, error: usernameError } = await supabaseAdmin
       .from("tech_profiles")
       .select("user_id")
@@ -330,17 +606,29 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid request body." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid request body." },
+      { status: 400 }
+    );
   }
 
   if (typeof body !== "object" || body === null) {
-    return Response.json({ error: "Invalid request body." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid request body." },
+      { status: 400 }
+    );
   }
 
-  const { salonRef, count } = body as { salonRef?: unknown; count?: unknown };
+  const { salonRef, count } = body as {
+    salonRef?: unknown;
+    count?: unknown;
+  };
 
   if (typeof salonRef !== "string") {
-    return Response.json({ error: "Missing or invalid salonRef." }, { status: 400 });
+    return Response.json(
+      { error: "Missing or invalid salonRef." },
+      { status: 400 }
+    );
   }
 
   const trimmedSalonRef = salonRef.trim();
@@ -350,7 +638,10 @@ export async function POST(request: Request) {
     trimmedSalonRef.length > SALON_REF_MAX_LENGTH ||
     !SALON_REF_PATTERN.test(trimmedSalonRef)
   ) {
-    return Response.json({ error: "Invalid salonRef." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid salonRef." },
+      { status: 400 }
+    );
   }
 
   if (
@@ -359,7 +650,10 @@ export async function POST(request: Request) {
     count < 0 ||
     count > MAX_COUNT
   ) {
-    return Response.json({ error: "Invalid count." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid count." },
+      { status: 400 }
+    );
   }
 
   const ip = getClientIp(request);
@@ -381,7 +675,10 @@ export async function POST(request: Request) {
   const resolvedUserId = await resolveTechProfileUserId(trimmedSalonRef);
 
   if (!resolvedUserId) {
-    return Response.json({ error: "Salon not found." }, { status: 404 });
+    return Response.json(
+      { error: "Salon not found." },
+      { status: 404 }
+    );
   }
 
   const userAllowed = await checkRateLimit(
@@ -401,15 +698,23 @@ export async function POST(request: Request) {
   const batchId = crypto.randomUUID();
 
   if (count === 0) {
-    return Response.json({ batchId, uploads: [] });
+    return Response.json({
+      batchId,
+      uploads: [],
+    });
   }
 
-  const uploads: { path: string; signedUrl: string; token: string }[] = [];
+  const uploads: {
+    path: string;
+    signedUrl: string;
+    token: string;
+  }[] = [];
 
   for (let index = 0; index < count; index++) {
     const path = `walk-in/${resolvedUserId}/${batchId}/${index}-${crypto.randomUUID()}.jpg`;
 
     const uploadStepStart = Date.now();
+
     const { data, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUploadUrl(path);
@@ -435,5 +740,8 @@ export async function POST(request: Request) {
     });
   }
 
-  return Response.json({ batchId, uploads });
+  return Response.json({
+    batchId,
+    uploads,
+  });
 }

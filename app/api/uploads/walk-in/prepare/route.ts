@@ -22,7 +22,69 @@ function getClientIp(request: Request): string {
   return "unknown";
 }
 
+// TAM THOI - chan doan production, se go bo o commit tiep theo sau khi xac
+// dinh nguyen nhan that. Khong doi logic/response o bat ky nhanh nao, chi
+// doc them "error" da co san trong ket qua Supabase (truoc day bi bo qua)
+// va ghi log da loc. Khong log salonRef, IP, username, user_id, batchId,
+// token, signedUrl, path, hay bat ky gia tri tu request/env nao. Message
+// loi chi duoc anh xa ve 1 trong so cum tu allowlist co dinh, khong bao gio
+// ghi nguyen van noi dung goc.
+type DiagnosticErrorInfo = {
+  code?: string;
+  status?: number;
+  message?: string;
+};
+
+const DIAGNOSTIC_MESSAGE_ALLOWLIST = [
+  "fetch failed",
+  "invalid api key",
+  "jwt expired",
+  "network error",
+  "timeout",
+];
+
+function extractDiagnosticError(error: unknown): DiagnosticErrorInfo | undefined {
+  if (!error || typeof error !== "object") return undefined;
+
+  const candidate = error as { code?: unknown; status?: unknown; message?: unknown };
+
+  return {
+    code: typeof candidate.code === "string" ? candidate.code : undefined,
+    status: typeof candidate.status === "number" ? candidate.status : undefined,
+    message: typeof candidate.message === "string" ? candidate.message : undefined,
+  };
+}
+
+function sanitizeDiagnosticMessage(message: string | undefined): string {
+  if (!message) return "none";
+
+  const normalized = message.toLowerCase();
+  const matched = DIAGNOSTIC_MESSAGE_ALLOWLIST.find((phrase) =>
+    normalized.includes(phrase)
+  );
+
+  return matched ?? "redacted";
+}
+
+function logDiagnosticStep(
+  requestId: string,
+  step: string,
+  durationMs: number,
+  error?: DiagnosticErrorInfo
+): void {
+  if (error) {
+    console.error(
+      `[walkin-prepare-diagnostic] id=${requestId} step=${step} durationMs=${durationMs} errorCode=${error.code ?? "unknown"} errorStatus=${error.status ?? "unknown"} errorMessage=${sanitizeDiagnosticMessage(error.message)}`
+    );
+  } else {
+    console.log(
+      `[walkin-prepare-diagnostic] id=${requestId} step=${step} durationMs=${durationMs} status=ok`
+    );
+  }
+}
+
 export async function POST(request: Request) {
+  const diagnosticRequestId = crypto.randomUUID();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -44,24 +106,41 @@ export async function POST(request: Request) {
   async function checkRateLimit(
     key: string,
     maxRequests: number,
-    windowMinutes: number
+    windowMinutes: number,
+    diagnosticLabel: string
   ): Promise<boolean> {
     const windowMs = windowMinutes * 60 * 1000;
 
-    const { data } = await supabaseAdmin
+    const selectStart = Date.now();
+    const { data, error: selectError } = await supabaseAdmin
       .from("api_rate_limits")
       .select("count, window_start")
       .eq("key", key)
       .maybeSingle();
 
+    logDiagnosticStep(
+      diagnosticRequestId,
+      `rateLimitSelect:${diagnosticLabel}`,
+      Date.now() - selectStart,
+      extractDiagnosticError(selectError)
+    );
+
     const now = Date.now();
 
-    if (!data || now - new Date(data.window_start).getTime() > windowMs) {
-      await supabaseAdmin.from("api_rate_limits").upsert({
+    if (!data || now - new Date(data.window_start).getTime() > windowMs){
+      const upsertStart = Date.now();
+      const { error: upsertError } = await supabaseAdmin.from("api_rate_limits").upsert({
         key,
         count: 1,
         window_start: new Date().toISOString(),
       });
+
+      logDiagnosticStep(
+        diagnosticRequestId,
+        `rateLimitReset:${diagnosticLabel}`,
+        Date.now() - upsertStart,
+        extractDiagnosticError(upsertError)
+      );
 
       return true;
     }
@@ -70,12 +149,20 @@ export async function POST(request: Request) {
       return false;
     }
 
-    await supabaseAdmin
+    const updateStart = Date.now();
+    const { error: updateError } = await supabaseAdmin
       .from("api_rate_limits")
       .update({
         count: data.count + 1,
       })
       .eq("key", key);
+
+    logDiagnosticStep(
+      diagnosticRequestId,
+      `rateLimitIncrement:${diagnosticLabel}`,
+      Date.now() - updateStart,
+      extractDiagnosticError(updateError)
+    );
 
     return true;
   }
@@ -84,22 +171,50 @@ export async function POST(request: Request) {
     salonRef: string
   ): Promise<string | null> {
     if (UUID_PATTERN.test(salonRef)) {
-      const { data } = await supabaseAdmin
+      const userIdStepStart = Date.now();
+      const { data, error: userIdError } = await supabaseAdmin
         .from("tech_profiles")
         .select("user_id")
         .eq("user_id", salonRef)
         .maybeSingle();
+
+      const userIdOutcome = userIdError
+        ? "error"
+        : data?.user_id
+          ? "found"
+          : "not_found";
+
+      logDiagnosticStep(
+        diagnosticRequestId,
+        `resolveByUserId:${userIdOutcome}`,
+        Date.now() - userIdStepStart,
+        extractDiagnosticError(userIdError)
+      );
 
       if (data?.user_id) {
         return data.user_id as string;
       }
     }
 
-    const { data } = await supabaseAdmin
+    const usernameStepStart = Date.now();
+    const { data, error: usernameError } = await supabaseAdmin
       .from("tech_profiles")
       .select("user_id")
       .eq("username", salonRef)
       .maybeSingle();
+
+    const usernameOutcome = usernameError
+      ? "error"
+      : data?.user_id
+        ? "found"
+        : "not_found";
+
+    logDiagnosticStep(
+      diagnosticRequestId,
+      `resolveByUsername:${usernameOutcome}`,
+      Date.now() - usernameStepStart,
+      extractDiagnosticError(usernameError)
+    );
 
     return (data?.user_id as string | undefined) ?? null;
   }
@@ -146,7 +261,8 @@ export async function POST(request: Request) {
   const ipAllowed = await checkRateLimit(
     `walkin-prepare:ip:${ip}`,
     PREPARE_IP_LIMIT,
-    PREPARE_IP_WINDOW_MINUTES
+    PREPARE_IP_WINDOW_MINUTES,
+    "ip"
   );
 
   if (!ipAllowed) {
@@ -165,7 +281,8 @@ export async function POST(request: Request) {
   const userAllowed = await checkRateLimit(
     `walkin-prepare:user:${resolvedUserId}`,
     PREPARE_USER_LIMIT,
-    PREPARE_USER_WINDOW_MINUTES
+    PREPARE_USER_WINDOW_MINUTES,
+    "user"
   );
 
   if (!userAllowed) {
@@ -186,9 +303,17 @@ export async function POST(request: Request) {
   for (let index = 0; index < count; index++) {
     const path = `walk-in/${resolvedUserId}/${batchId}/${index}-${crypto.randomUUID()}.jpg`;
 
+    const uploadStepStart = Date.now();
     const { data, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUploadUrl(path);
+
+    logDiagnosticStep(
+      diagnosticRequestId,
+      `createSignedUploadUrl:${index}`,
+      Date.now() - uploadStepStart,
+      extractDiagnosticError(error)
+    );
 
     if (error || !data) {
       return Response.json(

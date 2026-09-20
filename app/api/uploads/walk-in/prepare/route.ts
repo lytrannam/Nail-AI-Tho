@@ -25,56 +25,162 @@ function getClientIp(request: Request): string {
 // TAM THOI - chan doan production, se go bo o commit tiep theo sau khi xac
 // dinh nguyen nhan that. Khong doi logic/response o bat ky nhanh nao, chi
 // doc them "error" da co san trong ket qua Supabase (truoc day bi bo qua)
-// va ghi log da loc. Khong log salonRef, IP, username, user_id, batchId,
-// token, signedUrl, path, hay bat ky gia tri tu request/env nao. Message
-// loi chi duoc anh xa ve 1 trong so cum tu allowlist co dinh, khong bao gio
-// ghi nguyen van noi dung goc.
-type DiagnosticErrorInfo = {
+// va ghi log da phan loai. Khong log salonRef, IP, username, user_id,
+// batchId, token, signedUrl, path, hay bat ky gia tri tu request/env nao.
+// Khong bao gio ghi nguyen van message/details/hint/cause - chi doc noi bo
+// de phan loai thanh 1 trong so nhan co dinh.
+type DiagnosticErrorInternal = {
   code?: string;
   status?: number;
   message?: string;
+  details?: string;
+  hint?: string;
+  causeCode?: string;
+  causeMessage?: string;
 };
 
-const DIAGNOSTIC_MESSAGE_ALLOWLIST = [
-  "fetch failed",
-  "invalid api key",
-  "jwt expired",
-  "network error",
-  "timeout",
-];
+type DiagnosticErrorLabel =
+  | "fetch_failed"
+  | "connection_refused"
+  | "dns_not_found"
+  | "connection_timed_out"
+  | "socket_closed"
+  | "tls_certificate"
+  | "aggregate_error"
+  | "invalid_api_key"
+  | "jwt_error"
+  | "invalid_url"
+  | "unknown";
 
-function extractDiagnosticError(error: unknown): DiagnosticErrorInfo | undefined {
+type DiagnosticErrorSummary = {
+  category: DiagnosticErrorLabel;
+  code: string;
+  status: string;
+};
+
+function extractDiagnosticError(error: unknown): DiagnosticErrorInternal | undefined {
   if (!error || typeof error !== "object") return undefined;
 
-  const candidate = error as { code?: unknown; status?: unknown; message?: unknown };
+  const candidate = error as {
+    code?: unknown;
+    status?: unknown;
+    message?: unknown;
+    details?: unknown;
+    hint?: unknown;
+    cause?: unknown;
+  };
+
+  const cause =
+    candidate.cause && typeof candidate.cause === "object"
+      ? (candidate.cause as { code?: unknown; message?: unknown })
+      : undefined;
 
   return {
     code: typeof candidate.code === "string" ? candidate.code : undefined,
     status: typeof candidate.status === "number" ? candidate.status : undefined,
     message: typeof candidate.message === "string" ? candidate.message : undefined,
+    details: typeof candidate.details === "string" ? candidate.details : undefined,
+    hint: typeof candidate.hint === "string" ? candidate.hint : undefined,
+    causeCode: cause && typeof cause.code === "string" ? cause.code : undefined,
+    causeMessage: cause && typeof cause.message === "string" ? cause.message : undefined,
   };
 }
 
-function sanitizeDiagnosticMessage(message: string | undefined): string {
-  if (!message) return "none";
+// Ghep cac truong noi bo (chi trong bo nho, khong log) roi so khop tu khoa
+// de tra ve DUNG 1 nhan co dinh. Khong bao gio tra ve chuoi da ghep.
+function classifyDiagnosticError(error: DiagnosticErrorInternal): DiagnosticErrorLabel {
+  const combined = [
+    error.code,
+    error.message,
+    error.details,
+    error.hint,
+    error.causeCode,
+    error.causeMessage,
+  ]
+    .filter((part): part is string => typeof part === "string")
+    .join(" ")
+    .toLowerCase();
 
-  const normalized = message.toLowerCase();
-  const matched = DIAGNOSTIC_MESSAGE_ALLOWLIST.find((phrase) =>
-    normalized.includes(phrase)
-  );
+  if (combined.includes("enotfound") || combined.includes("getaddrinfo")) {
+    return "dns_not_found";
+  }
+  if (combined.includes("econnrefused")) {
+    return "connection_refused";
+  }
+  if (
+    combined.includes("etimedout") ||
+    combined.includes("timeout") ||
+    combined.includes("timed out")
+  ) {
+    return "connection_timed_out";
+  }
+  if (
+    combined.includes("socket hang up") ||
+    combined.includes("socket closed") ||
+    combined.includes("econnreset") ||
+    combined.includes("connection reset") ||
+    combined.includes("network socket disconnected")
+  ) {
+    return "socket_closed";
+  }
+  if (
+    combined.includes("certificate") ||
+    combined.includes("self signed") ||
+    combined.includes("unable to verify") ||
+    combined.includes("tls") ||
+    combined.includes("ssl")
+  ) {
+    return "tls_certificate";
+  }
+  if (combined.includes("aggregateerror")) {
+    return "aggregate_error";
+  }
+  if (combined.includes("invalid api key")) {
+    return "invalid_api_key";
+  }
+  if (combined.includes("invalid jwt") || combined.includes("jwt expired")) {
+    return "jwt_error";
+  }
+  if (combined.includes("invalid url")) {
+    return "invalid_url";
+  }
+  if (combined.includes("fetch failed")) {
+    return "fetch_failed";
+  }
 
-  return matched ?? "redacted";
+  return "unknown";
+}
+
+// Chuan hoa code truoc khi log: rong -> "empty" (phan biet voi thieu hoan
+// toan), dung dinh dang ky tu an toan (chu/so/gach ngang/gach duoi, toi da
+// 64 ky tu) -> giu nguyen, con lai -> "redacted" de khong lo chuoi la.
+function sanitizeDiagnosticCode(code: string | undefined): string {
+  if (code === undefined) return "unknown";
+  if (code.length === 0) return "empty";
+
+  return /^[a-zA-Z0-9_-]{1,64}$/.test(code) ? code : "redacted";
+}
+
+function summarizeDiagnosticError(
+  error: DiagnosticErrorInternal
+): DiagnosticErrorSummary {
+  return {
+    category: classifyDiagnosticError(error),
+    code: sanitizeDiagnosticCode(error.code),
+    status: error.status !== undefined ? String(error.status) : "unknown",
+  };
 }
 
 function logDiagnosticStep(
   requestId: string,
   step: string,
   durationMs: number,
-  error?: DiagnosticErrorInfo
+  error?: DiagnosticErrorInternal
 ): void {
   if (error) {
+    const summary = summarizeDiagnosticError(error);
     console.error(
-      `[walkin-prepare-diagnostic] id=${requestId} step=${step} durationMs=${durationMs} errorCode=${error.code ?? "unknown"} errorStatus=${error.status ?? "unknown"} errorMessage=${sanitizeDiagnosticMessage(error.message)}`
+      `[walkin-prepare-diagnostic] id=${requestId} step=${step} durationMs=${durationMs} errorCategory=${summary.category} errorCode=${summary.code} errorStatus=${summary.status}`
     );
   } else {
     console.log(

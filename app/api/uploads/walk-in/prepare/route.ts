@@ -454,6 +454,49 @@ function createDiagnosticFetch(requestId: string): typeof fetch {
   };
 }
 
+function logEnvHeaderSafety(
+  requestId: string,
+  supabaseUrl: string,
+  serviceRoleKey: string
+): void {
+  try {
+    const keyCharsetSafe = /^[A-Za-z0-9._-]+$/.test(serviceRoleKey);
+    const keyControlChar = /[\x00-\x1F\x7F]/.test(serviceRoleKey);
+    const keyNonAscii = /[^\x00-\x7F]/.test(serviceRoleKey);
+    const keyEdgeWhitespace = serviceRoleKey !== serviceRoleKey.trim();
+
+    let headerBuildOk = false;
+    try {
+      const headers = new Headers();
+
+      if (!headers.has("apikey")) {
+        headers.set("apikey", serviceRoleKey);
+      }
+
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${serviceRoleKey}`);
+      }
+
+      headerBuildOk = true;
+    } catch {}
+
+    const urlControlChar = /[\x00-\x1F\x7F]/.test(supabaseUrl);
+    const urlEdgeWhitespace = supabaseUrl !== supabaseUrl.trim();
+
+    let urlParses = false;
+    let urlHttps = false;
+    try {
+      const parsed = new URL(supabaseUrl);
+      urlParses = true;
+      urlHttps = parsed.protocol === "https:";
+    } catch {}
+
+    console.log(
+      `[walkin-prepare-diagnostic] id=${requestId} step=envCheck keyCharsetSafe=${keyCharsetSafe} keyControlChar=${keyControlChar} keyNonAscii=${keyNonAscii} keyEdgeWhitespace=${keyEdgeWhitespace} headerBuildOk=${headerBuildOk} urlParses=${urlParses} urlHttps=${urlHttps} urlControlChar=${urlControlChar} urlEdgeWhitespace=${urlEdgeWhitespace}`
+    );
+  } catch {}
+}
+
 export async function POST(request: Request) {
   const diagnosticRequestId = crypto.randomUUID();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -465,6 +508,8 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  logEnvHeaderSafety(diagnosticRequestId, supabaseUrl, serviceRoleKey);
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
     global: { fetch: createDiagnosticFetch(diagnosticRequestId) },

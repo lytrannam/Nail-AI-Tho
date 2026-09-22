@@ -18,20 +18,31 @@ async function checkRateLimit(
 ): Promise<boolean> {
   const windowMs = windowMinutes * 60 * 1000;
 
-  const { data } = await supabaseAdmin
+  const { data, error: selectError } = await supabaseAdmin
     .from("api_rate_limits")
     .select("count, window_start")
     .eq("key", key)
     .maybeSingle();
 
+  if (selectError) {
+    throw new Error("rate_limit_infra_error");
+  }
+
   const now = Date.now();
 
   if (!data || now - new Date(data.window_start).getTime() > windowMs) {
-    await supabaseAdmin.from("api_rate_limits").upsert({
-      key,
-      count: 1,
-      window_start: new Date().toISOString(),
-    });
+    const { error: upsertError } = await supabaseAdmin
+      .from("api_rate_limits")
+      .upsert({
+        key,
+        count: 1,
+        window_start: new Date().toISOString(),
+      });
+
+    if (upsertError) {
+      throw new Error("rate_limit_infra_error");
+    }
+
     return true;
   }
 
@@ -39,10 +50,14 @@ async function checkRateLimit(
     return false;
   }
 
-  await supabaseAdmin
+  const { error: updateError } = await supabaseAdmin
     .from("api_rate_limits")
     .update({ count: data.count + 1 })
     .eq("key", key);
+
+  if (updateError) {
+    throw new Error("rate_limit_infra_error");
+  }
 
   return true;
 }
@@ -52,7 +67,36 @@ function getClientIp(request: Request): string {
   if (forwarded) return forwarded.split(",")[0].trim();
   return "unknown";
 }
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
+// Tra user_id cua tho tu salonRef (co the la username hoac chinh user_id),
+// khong con dua vao customerId (de/doan duoc) de suy ra tho. Loi Supabase o
+// day chi khien phan "anh that trong portfolio" bi bo qua, khong lam hong
+// toan bo tinh nang phan tich AI.
+async function resolveTechProfileUserId(salonRef: string): Promise<string | null> {
+  if (UUID_PATTERN.test(salonRef)) {
+    const { data, error } = await supabaseAdmin
+      .from("tech_profiles")
+      .select("user_id")
+      .eq("user_id", salonRef)
+      .maybeSingle();
+
+    if (!error && data?.user_id) {
+      return data.user_id as string;
+    }
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("tech_profiles")
+    .select("user_id")
+    .eq("username", salonRef)
+    .maybeSingle();
+
+  if (error) return null;
+
+  return (data?.user_id as string | undefined) ?? null;
+}
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
@@ -70,7 +114,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { image, customerId } = await request.json();
+    const { image, salonRef } = await request.json();
 
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
@@ -140,14 +184,8 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
 
     let realMatches: { image_url: string; style: string | null }[] = [];
 
-    if (customerId) {
-      const { data: customerRow } = await supabaseAdmin
-        .from("customers")
-        .select("user_id")
-        .eq("id", customerId)
-        .single();
-
-      const salonUserId = customerRow?.user_id;
+    if (typeof salonRef === "string" && salonRef.trim().length > 0) {
+      const salonUserId = await resolveTechProfileUserId(salonRef.trim());
 
       if (salonUserId) {
         if (skinToneGroup && undertone) {

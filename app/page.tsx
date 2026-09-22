@@ -237,10 +237,14 @@ function PageContent() {
     setTryOnError("");
 
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      const salonParam = searchParams.get("salon");
+      const salonRef = salonParam || userData?.user?.id || null;
+
       const response = await fetch("/api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, customerId }),
+        body: JSON.stringify({ image, salonRef }),
       });
 
       const data = await response.json();

@@ -18,20 +18,30 @@ async function checkRateLimit(
 ): Promise<boolean> {
   const windowMs = windowMinutes * 60 * 1000;
 
-  const { data } = await supabaseAdmin
+  const { data, error: selectError } = await supabaseAdmin
     .from("api_rate_limits")
     .select("count, window_start")
     .eq("key", key)
     .maybeSingle();
 
+  if (selectError) {
+    throw new Error("rate_limit_infra_error");
+  }
+
   const now = Date.now();
 
   if (!data || now - new Date(data.window_start).getTime() > windowMs) {
-    await supabaseAdmin.from("api_rate_limits").upsert({
-      key,
-      count: 1,
-      window_start: new Date().toISOString(),
-    });
+    const { error: upsertError } = await supabaseAdmin
+      .from("api_rate_limits")
+      .upsert({
+        key,
+        count: 1,
+        window_start: new Date().toISOString(),
+      });
+
+    if (upsertError) {
+      throw new Error("rate_limit_infra_error");
+    }
 
     return true;
   }
@@ -40,12 +50,14 @@ async function checkRateLimit(
     return false;
   }
 
-  await supabaseAdmin
+  const { error: updateError } = await supabaseAdmin
     .from("api_rate_limits")
-    .update({
-      count: data.count + 1,
-    })
+    .update({ count: data.count + 1 })
     .eq("key", key);
+
+  if (updateError) {
+    throw new Error("rate_limit_infra_error");
+  }
 
   return true;
 }
@@ -60,11 +72,66 @@ function getClientIp(request: Request): string {
   return "unknown";
 }
 
-async function urlToFile(url: string, filename: string): Promise<File> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Cannot load reference image");
-  const blob = await response.blob();
-  return new File([blob], filename, { type: blob.type || "image/jpeg" });
+const ALLOWED_STORAGE_HOSTS = new Set([
+  "rxptwdxbxlxcuxjzuvfr.supabase.co",
+]);
+const ALLOWED_STORAGE_PATH_PREFIX = "/storage/v1/object/public/nail-designs/";
+
+function isAllowedExternalImageUrl(raw: string): boolean {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "https:") return false;
+  if (!ALLOWED_STORAGE_HOSTS.has(parsed.hostname)) return false;
+  if (!parsed.pathname.startsWith(ALLOWED_STORAGE_PATH_PREFIX)) return false;
+
+  return true;
+}
+
+async function urlToFile(
+  url: string,
+  filename: string,
+  options: { allowExternal: boolean }
+): Promise<File> {
+  const isDataUrl = url.startsWith("data:image/");
+
+  if (!isDataUrl) {
+    if (!options.allowExternal || !isAllowedExternalImageUrl(url)) {
+      throw new Error("Unsupported image source.");
+    }
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      redirect: "error",
+    });
+
+    if (!response.ok) throw new Error("Cannot load reference image");
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) {
+      throw new Error("Unsupported image source.");
+    }
+
+    const blob = await response.blob();
+
+    if (blob.size <= 0 || blob.size > 5_000_000) {
+      throw new Error("Image too large or invalid.");
+    }
+
+    return new File([blob], filename, { type: blob.type || "image/jpeg" });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function POST(request: Request) {
@@ -98,13 +165,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const handFile = await urlToFile(image, "hand.jpg");
+    const handFile = await urlToFile(image, "hand.jpg", { allowExternal: false });
 
     let editedImage;
 
     if (designImage) {
       // ---- LUONG 1: TRANG CHU - ghep mau da chon (designImage) len tay that ----
-      const designFile = await urlToFile(designImage, "design.jpg");
+      const designFile = await urlToFile(designImage, "design.jpg", { allowExternal: true });
 
       editedImage = await openai.images.edit({
         model: "gpt-image-2",

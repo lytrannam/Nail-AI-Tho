@@ -15,20 +15,31 @@ async function checkRateLimit(
 ): Promise<boolean> {
   const windowMs = windowMinutes * 60 * 1000;
 
-  const { data } = await supabaseAdmin
+  const { data, error: selectError } = await supabaseAdmin
     .from("api_rate_limits")
     .select("count, window_start")
     .eq("key", key)
     .maybeSingle();
 
+  if (selectError) {
+    throw new Error("rate_limit_infra_error");
+  }
+
   const now = Date.now();
 
   if (!data || now - new Date(data.window_start).getTime() > windowMs) {
-    await supabaseAdmin.from("api_rate_limits").upsert({
-      key,
-      count: 1,
-      window_start: new Date().toISOString(),
-    });
+    const { error: upsertError } = await supabaseAdmin
+      .from("api_rate_limits")
+      .upsert({
+        key,
+        count: 1,
+        window_start: new Date().toISOString(),
+      });
+
+    if (upsertError) {
+      throw new Error("rate_limit_infra_error");
+    }
+
     return true;
   }
 
@@ -36,10 +47,14 @@ async function checkRateLimit(
     return false;
   }
 
-  await supabaseAdmin
+  const { error: updateError } = await supabaseAdmin
     .from("api_rate_limits")
     .update({ count: data.count + 1 })
     .eq("key", key);
+
+  if (updateError) {
+    throw new Error("rate_limit_infra_error");
+  }
 
   return true;
 }

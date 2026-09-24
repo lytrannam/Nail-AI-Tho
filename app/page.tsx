@@ -119,6 +119,7 @@ function PageContent() {
   const [tryOnCount, setTryOnCount] = useState(0);
 
   const [customerId, setCustomerId] = useState<number | null>(null);
+  const [walkInToken, setWalkInToken] = useState<string | null>(null);
   const [loyaltyInfo, setLoyaltyInfo] = useState<{
     enabled: boolean;
     visitsRequired: number;
@@ -183,19 +184,32 @@ function PageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const getCustomerToken = (): string | null => token || walkInToken;
+
   const saveSelectedDesign = async (index: number, imageUrl: string) => {
-    if (!customerId) return;
+    const customerToken = getCustomerToken();
+    if (!customerId || !customerToken) return;
 
-    const { error } = await supabase
-      .from("customers")
-      .update({
-        selected_design: `Mẫu ${index + 1}`,
-        selected_design_image: imageUrl,
-      })
-      .eq("id", customerId);
+    try {
+      const response = await fetch("/api/customers/design-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId,
+          token: customerToken,
+          kind: "selected_design",
+          index,
+          image: imageUrl,
+        }),
+      });
 
-    if (!error) {
-      setSaveMessage(t.savedMessage);
+      if (response.ok) {
+        setSaveMessage(t.savedMessage);
+      } else {
+        console.error("Lưu mẫu đã chọn thất bại:", response.status);
+      }
+    } catch (err) {
+      console.error("Không thể lưu mẫu đã chọn:", err);
     }
   };
 
@@ -261,22 +275,31 @@ function PageContent() {
       setDesignImage(data.designImages?.[0] || null);
       setSelectedDesign(0);
 
-      if (customerId && data.designImages?.length > 0) {
-        const { uploadImage } = await import("../lib/uploadImage");
+      const customerToken = getCustomerToken();
+
+      if (customerId && customerToken && data.designImages?.length > 0) {
         const sources: ("real" | "ai")[] =
           data.designSources || data.designImages.map(() => "ai");
 
-        const uploadedUrls = await Promise.all(
-          data.designImages.map((img: string, idx: number) =>
-            sources[idx] === "real" ? Promise.resolve(img) : uploadImage(img)
-          )
-        );
-        const validUrls = uploadedUrls.filter((url) => url !== null);
+        try {
+          const saveResponse = await fetch("/api/customers/design-update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customerId,
+              token: customerToken,
+              kind: "all_design_images",
+              images: data.designImages,
+              sources,
+            }),
+          });
 
-        await supabase
-          .from("customers")
-          .update({ all_design_images: validUrls })
-          .eq("id", customerId);
+          if (!saveResponse.ok) {
+            console.error("Lưu ảnh thiết kế thất bại:", saveResponse.status);
+          }
+        } catch (err) {
+          console.error("Không thể lưu ảnh thiết kế:", err);
+        }
       }
     } catch (error) {
       setResult("⚠️ AI chưa thể tạo gợi ý lúc này. Vui lòng thử lại sau.");
@@ -323,17 +346,27 @@ function PageContent() {
       const newCount = tryOnCount + 1;
       setTryOnCount(newCount);
 
-      if (customerId && newResultImage) {
-        const { uploadImage } = await import("../lib/uploadImage");
-        const uploadedTryOnUrl = await uploadImage(newResultImage);
-        if (uploadedTryOnUrl) {
-          await supabase
-            .from("customers")
-            .update({
-              tryon_image: uploadedTryOnUrl,
-              tryon_used: newCount >= MAX_TRYON_PER_VISIT,
-            })
-            .eq("id", customerId);
+      const customerToken = getCustomerToken();
+
+      if (customerId && customerToken && newResultImage) {
+        try {
+          const saveResponse = await fetch("/api/customers/design-update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customerId,
+              token: customerToken,
+              kind: "tryon_image",
+              image: newResultImage,
+              used: newCount >= MAX_TRYON_PER_VISIT,
+            }),
+          });
+
+          if (!saveResponse.ok) {
+            console.error("Lưu ảnh thử mẫu thất bại:", saveResponse.status);
+          }
+        } catch (err) {
+          console.error("Không thể lưu ảnh thử mẫu:", err);
         }
       }
     } catch (error) {
@@ -532,6 +565,7 @@ function PageContent() {
       }
 
       setCustomerId(finalizeData.customerId);
+      setWalkInToken(batchId);
       setWalkInSaved(true);
     } catch (err) {
       console.error(

@@ -101,15 +101,19 @@ export async function GET(request: Request) {
       );
     }
 
-    const { data: loyaltySettings } = await supabaseAdmin
+    const { data: loyaltySettings, error: loyaltyError } = await supabaseAdmin
       .from("loyalty_settings")
       .select("enabled, visits_required, amount_required, discount_percent")
       .eq("user_id", customer.user_id)
       .maybeSingle();
 
+    if (loyaltyError && loyaltyError.code !== "42P01") {
+      console.error("[customer-by-token] Cannot load loyalty settings.");
+    }
+
     return NextResponse.json({
       customer,
-      loyaltySettings,
+      loyaltySettings: loyaltyError ? null : loyaltySettings,
     });
   } catch (error) {
     console.error("customer-by-token error:", error);

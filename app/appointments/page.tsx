@@ -107,6 +107,25 @@ function AppointmentsContent() {
 
     const appointmentsAt = new Date(`${date}T${time}`).toISOString();
 
+    const { data: ownedCustomer, error: ownerCheckError } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("id", Number(customerId))
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (ownerCheckError) {
+      setSaving(false);
+      alert("Không thể xác nhận thông tin khách. Vui lòng thử lại.");
+      return;
+    }
+
+    if (!ownedCustomer) {
+      setSaving(false);
+      alert("Không tìm thấy khách này trong danh sách của bạn.");
+      return;
+    }
+
     const { data, error } = await supabase
       .from("appointments")
       .insert({
@@ -130,28 +149,41 @@ function AppointmentsContent() {
     const newToken =
       Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-    const { data: currentCustomer } = await supabase
+    let customerUpdateFailed = false;
+    const { data: currentCustomer, error: customerReadError } = await supabase
       .from("customers")
       .select("visit_count, total_spent")
       .eq("id", Number(customerId))
       .single();
 
-    const newVisitCount = (currentCustomer?.visit_count || 0) + 1;
-    const newTotalSpent =
-      (currentCustomer?.total_spent || 0) + (Number(price) || 0);
+    if (customerReadError || !currentCustomer) {
+      console.error("[appointments] Cannot read customer statistics.");
+      customerUpdateFailed = true;
+    } else {
+      const newVisitCount = (currentCustomer.visit_count || 0) + 1;
+      const newTotalSpent =
+        (currentCustomer.total_spent || 0) + (Number(price) || 0);
 
-    await supabase
-      .from("customers")
-      .update({
-        all_design_images: null,
-        selected_design_image: null,
-        selected_design: null,
-        tryon_used: false,
-        session_token: newToken,
-        visit_count: newVisitCount,
-        total_spent: newTotalSpent,
-      })
-      .eq("id", Number(customerId));
+      const { data: updatedCustomer, error: customerUpdateError } = await supabase
+        .from("customers")
+        .update({
+          all_design_images: null,
+          selected_design_image: null,
+          selected_design: null,
+          tryon_used: false,
+          session_token: newToken,
+          visit_count: newVisitCount,
+          total_spent: newTotalSpent,
+        })
+        .eq("id", Number(customerId))
+        .select("id")
+        .maybeSingle();
+
+      if (customerUpdateError || !updatedCustomer) {
+        console.error("[appointments] Cannot update customer statistics.");
+        customerUpdateFailed = true;
+      }
+    }
 
     setAppointments((prev) =>
       [...prev, data].sort(
@@ -165,7 +197,11 @@ function AppointmentsContent() {
     setService("");
     setPrice("");
     setNotes("");
-    alert(t.apptSavedSuccess);
+    alert(
+      customerUpdateFailed
+        ? "Lịch hẹn đã được tạo, nhưng chưa cập nhật được thống kê khách. Không cần tạo lại lịch hẹn."
+        : t.apptSavedSuccess
+    );
   };
 
   if (loading) {

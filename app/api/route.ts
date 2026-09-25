@@ -74,28 +74,32 @@ const UUID_PATTERN =
 // khong con dua vao customerId (de/doan duoc) de suy ra tho. Loi Supabase o
 // day chi khien phan "anh that trong portfolio" bi bo qua, khong lam hong
 // toan bo tinh nang phan tich AI.
-async function resolveTechProfileUserId(salonRef: string): Promise<string | null> {
+async function resolveTechProfileUserId(
+  salonRef: string
+): Promise<{ userId: string; isPublic: boolean } | null> {
   if (UUID_PATTERN.test(salonRef)) {
     const { data, error } = await supabaseAdmin
       .from("tech_profiles")
-      .select("user_id")
+      .select("user_id, is_public")
       .eq("user_id", salonRef)
       .maybeSingle();
 
     if (!error && data?.user_id) {
-      return data.user_id as string;
+      return { userId: data.user_id as string, isPublic: data.is_public === true };
     }
   }
 
   const { data, error } = await supabaseAdmin
     .from("tech_profiles")
-    .select("user_id")
+    .select("user_id, is_public")
     .eq("username", salonRef)
     .maybeSingle();
 
   if (error) return null;
 
-  return (data?.user_id as string | undefined) ?? null;
+  if (!data?.user_id) return null;
+
+  return { userId: data.user_id as string, isPublic: data.is_public === true };
 }
 export async function POST(request: Request) {
   try {
@@ -185,11 +189,14 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
     let realMatches: { image_url: string; style: string | null }[] = [];
 
     if (typeof salonRef === "string" && salonRef.trim().length > 0) {
-      const salonUserId = await resolveTechProfileUserId(salonRef.trim());
+      const profile = await resolveTechProfileUserId(salonRef.trim());
 
-      if (salonUserId) {
+      if (profile?.isPublic === true) {
+        const salonUserId = profile.userId;
+        let portfolioFailed = false;
+
         if (skinToneGroup && undertone) {
-          const { data } = await supabaseAdmin
+          const { data, error } = await supabaseAdmin
             .from("portfolio")
             .select("image_url, style")
             .eq("user_id", salonUserId)
@@ -199,11 +206,17 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
             .order("created_at", { ascending: false })
             .limit(REAL_SLOTS);
 
-          if (data) realMatches = data;
+          if (error) {
+            console.error("[analyze] Portfolio tone/undertone lookup failed.");
+            portfolioFailed = true;
+            realMatches = [];
+          } else if (data) {
+            realMatches = data;
+          }
         }
 
-        if (realMatches.length < REAL_SLOTS && skinToneGroup) {
-          const { data } = await supabaseAdmin
+        if (!portfolioFailed && realMatches.length < REAL_SLOTS && skinToneGroup) {
+          const { data, error } = await supabaseAdmin
             .from("portfolio")
             .select("image_url, style")
             .eq("user_id", salonUserId)
@@ -212,7 +225,11 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
             .order("created_at", { ascending: false })
             .limit(REAL_SLOTS - realMatches.length);
 
-          if (data) {
+          if (error) {
+            console.error("[analyze] Portfolio tone lookup failed.");
+            portfolioFailed = true;
+            realMatches = [];
+          } else if (data) {
             const existingUrls = new Set(realMatches.map((m) => m.image_url));
             realMatches = [
               ...realMatches,
@@ -221,15 +238,20 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
           }
         }
 
-        if (realMatches.length === 0) {
-          const { data } = await supabaseAdmin
+        if (!portfolioFailed && realMatches.length === 0) {
+          const { data, error } = await supabaseAdmin
             .from("portfolio")
             .select("image_url, style")
             .eq("user_id", salonUserId)
             .order("created_at", { ascending: false })
             .limit(REAL_SLOTS);
 
-          if (data) realMatches = data;
+          if (error) {
+            console.error("[analyze] Portfolio fallback lookup failed.");
+            realMatches = [];
+          } else if (data) {
+            realMatches = data;
+          }
         }
       }
     }

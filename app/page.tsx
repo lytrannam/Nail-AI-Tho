@@ -159,6 +159,19 @@ function PageContent() {
         // luu 1 lan dung/chua), coi nhu da het luot de an toan chi phi, khong
         // biet chinh xac ho da dung bao nhieu lan truoc do.
         setTryOnCount(data.tryon_used ? MAX_TRYON_PER_VISIT : 0);
+
+        const loyaltySettings = result.loyaltySettings;
+
+        if (loyaltySettings?.enabled) {
+          setLoyaltyInfo({
+            enabled: true,
+            visitsRequired: loyaltySettings.visits_required ?? 0,
+            amountRequired: loyaltySettings.amount_required ?? 0,
+            discountPercent: loyaltySettings.discount_percent ?? 0,
+            currentVisits: data.visit_count ?? 0,
+            currentSpent: data.total_spent ?? 0,
+          });
+        }
       } catch (error) {
         console.error("Lỗi đọc token:", error);
       }
@@ -712,7 +725,7 @@ function PageContent() {
           {loyaltyInfo.currentVisits >= loyaltyInfo.visitsRequired ||
           loyaltyInfo.currentSpent >= loyaltyInfo.amountRequired ? (
             <strong>
-              🎉 You've earned {loyaltyInfo.discountPercent}% off your next visit!
+              🎉 You&apos;ve earned {loyaltyInfo.discountPercent}% off your next visit!
             </strong>
           ) : (
             <span>

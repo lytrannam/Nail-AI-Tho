@@ -106,13 +106,13 @@ export default function InvitePage() {
         {lang === "vi" ? (
           <>
             <strong>Lưu ý:</strong> Mỗi thợ cần tự tạo tài khoản riêng (email + mật khẩu
-            của họ). Đây không phải mã QR "dùng chung" — mỗi người quét vào sẽ tự đăng
+            của họ). Đây không phải mã QR &quot;dùng chung&quot; — mỗi người quét vào sẽ tự đăng
             ký tài khoản độc lập của mình.
           </>
         ) : (
           <>
             <strong>Note:</strong> Each tech needs to create their own account (their
-            own email + password). This is not a "shared" QR code — everyone who scans
+            own email + password). This is not a &quot;shared&quot; QR code — everyone who scans
             it registers their own independent account.
           </>
         )}

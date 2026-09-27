@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 
@@ -7,6 +9,7 @@ type Lang = "vi" | "en";
 type PlanId = "individual" | "salon";
 
 export default function PricingPage() {
+  const router = useRouter();
   const [lang, setLang] = useState<Lang>("vi");
   const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(null);
   const [email, setEmail] = useState("");
@@ -116,7 +119,7 @@ export default function PricingPage() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/customers";
+          router.push("/customers");
         }}
         style={{
           padding: "8px 16px",

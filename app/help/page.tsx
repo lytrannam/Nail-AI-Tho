@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 
 type Lang = "vi" | "en";
@@ -72,6 +74,7 @@ type ChatMessage = {
 };
 
 export default function HelpPage() {
+  const router = useRouter();
   const [lang, setLang] = useState<Lang>("vi");
   const sections = lang === "vi" ? SECTIONS_VI : SECTIONS_EN;
 
@@ -147,7 +150,7 @@ export default function HelpPage() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/customers";
+          router.push("/customers");
         }}
         style={{
           padding: "8px 16px",

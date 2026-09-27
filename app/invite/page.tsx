@@ -1,11 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 type Lang = "vi" | "en";
 
 export default function InvitePage() {
+  const router = useRouter();
   const [lang, setLang] = useState<Lang>("vi");
   const [loginUrl, setLoginUrl] = useState("");
 
@@ -50,7 +53,7 @@ export default function InvitePage() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/customers";
+          router.push("/customers");
         }}
         style={{
           padding: "8px 16px",

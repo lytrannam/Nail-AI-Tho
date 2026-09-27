@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useProLanguage } from "../../lib/pro-language";
 
 import { useEffect, useState } from "react";
@@ -7,6 +9,7 @@ import { supabase } from "../../lib/supabase";
 import { translations } from "../../lib/translations";
 
 export default function LoyaltySettingsPage() {
+  const router = useRouter();
   const [enabled, setEnabled] = useState(false);
   const [visitsRequired, setVisitsRequired] = useState(5);
   const [amountRequired, setAmountRequired] = useState(150);
@@ -123,7 +126,7 @@ export default function LoyaltySettingsPage() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/customers";
+          router.push("/customers");
         }}
         style={{
           padding: "10px 18px",

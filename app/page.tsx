@@ -3,7 +3,7 @@
 import ProArtwork from "./components/ProArtwork";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { translations, Language } from "../lib/translations";
 
@@ -98,6 +98,7 @@ function mapErrorStatus(status: number): string {
 }
 
 function PageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [showWelcome, setShowWelcome] = useState(true);
@@ -620,7 +621,7 @@ function PageContent() {
             <input ref={fileInput} type="file" accept="image/*" capture="environment" hidden onChange={(event) => { if (!event.target.files?.[0]) return; handleImage(event); setShowWelcome(false); }} />
             <div className="al-actions">
               <button type="button" className="al-primary" onClick={() => setShowWelcome(false)}>{lang === "vi" ? "Bắt đầu" : "Get Started"}<span aria-hidden="true">→</span></button>
-              <button type="button" className="al-signin" onClick={() => { window.location.href = "/pro"; }}>{lang === "vi" ? "Đăng nhập (Dành cho thợ nail)" : "Sign In (For Nail Techs)"}<span aria-hidden="true">→</span></button>
+              <button type="button" className="al-signin" onClick={() => { router.push("/pro"); }}>{lang === "vi" ? "Đăng nhập (Dành cho thợ nail)" : "Sign In (For Nail Techs)"}<span aria-hidden="true">→</span></button>
               <button type="button" className="al-guest" onClick={() => setShowWelcome(false)}>{lang === "vi" ? "Tiếp tục với tư cách khách" : "Continue as Guest"}<span aria-hidden="true">→</span></button>
             </div>
             <ProArtwork variant="welcome" lang={lang} />

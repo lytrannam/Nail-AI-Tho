@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useProLanguage } from "../../lib/pro-language";
 
 
@@ -32,6 +34,7 @@ function slugify(input: string): string {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [lang] = useProLanguage();
   const [userId, setUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -61,7 +64,7 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        window.location.href = "/login";
+        router.push("/login");
         return;
       }
 
@@ -99,7 +102,7 @@ export default function ProfilePage() {
     };
 
     init();
-  }, []);
+  }, [router]);
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -200,7 +203,7 @@ export default function ProfilePage() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/customers";
+          router.push("/customers");
         }}
         style={{
           padding: "8px 16px",

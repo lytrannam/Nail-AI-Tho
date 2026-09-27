@@ -3,7 +3,7 @@
 import { useProLanguage } from "../../lib/pro-language";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { translations } from "../../lib/translations";
 
@@ -15,6 +15,7 @@ type CustomerData = {
 };
 
 function CustomerDetailsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get("id");
   const [lang, setLang] = useProLanguage();
@@ -182,7 +183,7 @@ function CustomerDetailsContent() {
               type="button"
               disabled={!sessionToken}
               onClick={() => {
-                window.location.href = `/?token=${sessionToken}`;
+                router.push(`/?token=${sessionToken}`);
               }}
               style={{
                 padding: "14px 22px",
@@ -200,7 +201,7 @@ function CustomerDetailsContent() {
             <button
               type="button"
               onClick={() => {
-                window.location.href = `/appointments?customerId=${customerId}`;
+                router.push(`/appointments?customerId=${customerId}`);
               }}
               style={{
                 padding: "14px 22px",

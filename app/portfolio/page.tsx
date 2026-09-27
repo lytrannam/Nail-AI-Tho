@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useProLanguage } from "../../lib/pro-language";
 
 
@@ -33,6 +35,7 @@ function sortPortfolio(items: PortfolioItem[]): PortfolioItem[] {
 }
 
 export default function PortfolioPage() {
+  const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -63,7 +66,7 @@ export default function PortfolioPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        window.location.href = "/login";
+        router.push("/login");
         return;
       }
 
@@ -88,7 +91,7 @@ export default function PortfolioPage() {
     };
 
     init();
-  }, []);
+  }, [router]);
 
   const handleFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -290,7 +293,7 @@ export default function PortfolioPage() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/customers";
+          router.push("/customers");
         }}
         style={{
           padding: "8px 16px",

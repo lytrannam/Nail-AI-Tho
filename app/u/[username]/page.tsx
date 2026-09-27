@@ -189,7 +189,7 @@ export default function PublicProfilePage() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = `/?salon=${profile.user_id}`;
+            router.push(`/?salon=${profile.user_id}`);
           }}
           style={{
             padding: "14px 28px",

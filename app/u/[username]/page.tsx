@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { translations, Language } from "../../../lib/translations";
 
@@ -29,6 +29,7 @@ type PortfolioItem = {
 type DifficultyFilter = "all" | "easy" | "medium" | "hard";
 
 export default function PublicProfilePage() {
+  const router = useRouter();
   const params = useParams();
   const username = params.username as string;
 
@@ -38,7 +39,7 @@ export default function PublicProfilePage() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
 
-  const t = translations[lang] as any;
+  const t = translations[lang];
 
   useEffect(() => {
     const load = async () => {
@@ -79,7 +80,7 @@ export default function PublicProfilePage() {
   const handlePickDesign = (imageUrl: string) => {
     if (!profile) return;
     const url = `/?salon=${profile.user_id}&designImage=${encodeURIComponent(imageUrl)}`;
-    window.location.href = url;
+    router.push(url);
   };
 
   if (loading) {

@@ -4,6 +4,7 @@ import { useProLanguage } from "../../lib/pro-language";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { translations } from "../../lib/translations";
 
@@ -113,7 +114,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   return (
     <main className="auth-root" lang={lang}>
-      <header className="auth-top"><a href="/" className="auth-brand" aria-label="AL NAIL AI">AL NAIL <span>AI<small aria-hidden="true">♥</small></span></a><button type="button" className="auth-lang" onClick={() => setLang(lang === "en" ? "vi" : "en")} aria-label={lang === "vi" ? "Đổi ngôn ngữ" : "Change language"}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>{t.switchLang}</button></header>
+      <header className="auth-top"><Link href="/" className="auth-brand" aria-label="AL NAIL AI">AL NAIL <span>AI<small aria-hidden="true">♥</small></span></Link><button type="button" className="auth-lang" onClick={() => setLang(lang === "en" ? "vi" : "en")} aria-label={lang === "vi" ? "Đổi ngôn ngữ" : "Change language"}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>{t.switchLang}</button></header>
       <div className="auth-layout">
         <section className="auth-art" aria-label={lang === "vi" ? "Cảm hứng nail dành cho thợ" : "Inspiration for nail artists"}>
           <div className="auth-main-photo"><img src="/auth-look/artist-signature.png" alt={lang === "vi" ? "Bàn tay với móng French đỏ rượu và đường ánh vàng tinh tế" : "Burgundy French manicure with a delicate gold accent"} fetchPriority="high"/><div className="auth-photo-caption"><span>YOUR ART. YOUR SIGNATURE.</span><p>{lang === "vi" ? "Đẹp từ từng chi tiết." : "Beauty in every detail."}</p></div></div>
@@ -132,7 +133,7 @@ export default function LoginPage() {
             <button className="auth-submit" type="submit" disabled={loading}>{mode === "login" ? (loading ? t.loginLoggingIn : t.loginButton) : (loading ? t.loginSigningUp : t.loginSignupButton)}<span aria-hidden="true">→</span></button>
           </form>}
           <button type="button" className="auth-switch" onClick={() => { switchMode(); setShowPassword(false); }} disabled={loading}>{mode === "login" ? t.loginSwitchToSignup : t.loginSwitchToLogin}</button>
-          <div className="auth-customer"><span>{lang === "vi" ? "Bạn là khách muốn tìm mẫu nail?" : "Looking for your next nail design?"}</span><a href="/">{lang === "vi" ? "Khám phá dành cho khách" : "Explore as a customer"}<span aria-hidden="true"> →</span></a></div>
+          <div className="auth-customer"><span>{lang === "vi" ? "Bạn là khách muốn tìm mẫu nail?" : "Looking for your next nail design?"}</span><Link href="/">{lang === "vi" ? "Khám phá dành cho khách" : "Explore as a customer"}<span aria-hidden="true"> →</span></Link></div>
         </section>
       </div>
       <footer className="auth-footer">AL NAIL AI · {lang === "vi" ? "Kết nối thợ nail và khách." : "Connecting nail artists and clients."}</footer>

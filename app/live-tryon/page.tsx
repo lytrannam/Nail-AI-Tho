@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { HandLandmarker } from "@mediapipe/tasks-vision";
 import { translations, Language } from "../../lib/translations";
 
 // ----------------------------------------------------------------------------------
@@ -96,11 +97,11 @@ export default function LiveTryOnPage() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
 
-  const t = translations[lang] as any;
+  const t = translations[lang];
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const handLandmarkerRef = useRef<any>(null);
+  const handLandmarkerRef = useRef<HandLandmarker | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const textureRef = useRef<HTMLCanvasElement | null>(null);

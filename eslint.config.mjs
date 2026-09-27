@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // File test dung CommonJS co chu dich (vm.runInNewContext de require code
+  // TypeScript da transpile), khong phai loi thieu chuyen doi sang import.
+  {
+    files: ["tests/**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

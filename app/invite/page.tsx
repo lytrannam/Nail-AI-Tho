@@ -10,7 +10,10 @@ export default function InvitePage() {
   const [loginUrl, setLoginUrl] = useState("");
 
   useEffect(() => {
-    // Lay dung domain hien tai (localhost luc test, hoac domain that luc deploy)
+    // Lay dung domain hien tai (localhost luc test, hoac domain that luc deploy).
+    // Doc window.location sau khi mount la cach dung hop le, khong the tinh
+    // truoc luc render vi SSR khong co window - tat canh bao co chu dich.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoginUrl(`${window.location.origin}/login`);
   }, []);
 

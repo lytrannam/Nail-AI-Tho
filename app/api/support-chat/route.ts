@@ -139,7 +139,7 @@ export async function POST(request: Request) {
       model: "gpt-4.1-mini",
       input: [
         {
-          role: "system" as any,
+          role: "system" as const,
           content: `Bạn là trợ lý hỗ trợ của app "AL Nail AI". CHỈ được trả lời dựa trên
 đúng thông tin trong phần KIẾN THỨC dưới đây - không được bịa thêm thông tin nào khác.
 Nếu câu hỏi nằm ngoài phạm vi kiến thức này, hoặc bạn không chắc chắn, hãy trả lời:

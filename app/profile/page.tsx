@@ -52,7 +52,7 @@ export default function ProfilePage() {
   const [isPublic, setIsPublic] = useState(false);
   const [verified, setVerified] = useState(false);
 
-  const t = translations[lang] as any;
+  const t = translations[lang];
 
   useEffect(() => {
     const init = async () => {

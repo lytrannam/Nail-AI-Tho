@@ -186,6 +186,9 @@ function PageContent() {
     const galleryDesign = searchParams.get("designImage");
     if (galleryDesign) {
       const decoded = decodeURIComponent(galleryDesign);
+      // Doc tham so tu URL sau khi mount, tuong tu cac effect doc query khac
+      // trong file nay - tat canh bao co chu dich, khong phai loi.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDesignImage(decoded);
       setDesignImages([decoded]);
       setDesignSources(["real"]);

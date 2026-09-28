@@ -584,7 +584,11 @@ function PageContent() {
       }
 
       setCustomerId(finalizeData.customerId);
-      setWalkInToken(batchId);
+      const returnedToken =
+        typeof finalizeData.token === "string" && finalizeData.token.length > 0
+          ? finalizeData.token
+          : null;
+      setWalkInToken(returnedToken);
       setWalkInSaved(true);
     } catch (err) {
       console.error(

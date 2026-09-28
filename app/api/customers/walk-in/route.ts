@@ -326,7 +326,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from("customers")
       .select("id, user_id")
-      .eq("session_token", batchId)
+      .eq("batch_id", batchId)
       .maybeSingle();
 
     if (error) {
@@ -601,6 +601,7 @@ export async function POST(request: Request) {
 
     const selectedDesignImage = allImages[selectedIndex];
 
+    const newSessionToken = crypto.randomUUID();
     const { data: insertedRow, error: insertError } = await supabaseAdmin
       .from("customers")
       .insert({
@@ -609,7 +610,8 @@ export async function POST(request: Request) {
         phone: trimmedPhone,
         selected_design_image: selectedDesignImage,
         all_design_images: allImages,
-        session_token: batchId,
+        session_token: newSessionToken,
+        batch_id: batchId,
       })
       .select("id")
       .single();
@@ -618,7 +620,7 @@ export async function POST(request: Request) {
       const isSessionTokenConflict =
         insertError.code === "23505" &&
         typeof insertError.message === "string" &&
-        insertError.message.includes("customers_session_token_key");
+        insertError.message.includes("customers_batch_id_key");
 
       if (isSessionTokenConflict) {
         // 23505 nghia la co the 1 request song song da insert thanh cong
@@ -658,7 +660,7 @@ export async function POST(request: Request) {
       throw new InfraUnavailableError("insertCustomer");
     }
 
-    return Response.json({ success: true, customerId: insertedRow.id });
+    return Response.json({ success: true, customerId: insertedRow.id, token: newSessionToken });
   } catch (caught) {
     if (caught instanceof InfraUnavailableError) {
       logRouteError(caught.step, 503, caught.code);

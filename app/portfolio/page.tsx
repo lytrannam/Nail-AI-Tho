@@ -118,6 +118,8 @@ export default function PortfolioPage() {
       return;
     }
 
+    let untaggedCount = 0;
+
     for (const file of Array.from(files)) {
       try {
         const base64 = await new Promise<string>((resolve, reject) => {
@@ -139,10 +141,11 @@ export default function PortfolioPage() {
           body: JSON.stringify({ imageUrl }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.tags) { untaggedCount++; }
         // Keep the uploaded work even if automatic tags are temporarily unavailable.
 
-        const tags = data.tags || {};
+        const tags = data?.tags || {};
 
         const { error: insertError } = await supabase.from("portfolio").insert({
           user_id: userId,
@@ -167,7 +170,12 @@ export default function PortfolioPage() {
     setMessage(
       t.portfolioUploadedMessage
         .replace("{success}", String(successCount))
-        .replace("{total}", String(files.length))
+        .replace("{total}", String(files.length)) +
+        (untaggedCount > 0
+          ? lang === "en"
+            ? ` ${untaggedCount} photo(s) were saved without automatic tags.`
+            : ` ${untaggedCount} ảnh đã lưu nhưng chưa được gắn tag tự động.`
+          : "")
     );
 
     const { data } = await supabase

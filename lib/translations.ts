@@ -59,7 +59,7 @@ export const translations = {
     instructions:
       "📷 Take a clear photo of your hand in natural light, no filters, nails visible.",
     aiExplain:
-      "✨ AI will analyze your skin tone, suggest matching colors, and create 3 nail designs for you.",
+      "✨ AI will analyze your skin tone, suggest matching colors, and suggest 4 nail designs for you.",
     chooseOrTakePhoto: "📸 Take or choose a hand photo",
     yourHandPhoto: "Your hand photo",
     analyzing: "✨ AI is analyzing & creating designs...",
@@ -111,7 +111,7 @@ export const translations = {
     portfolioGuideStep3:
       "Wait a few seconds while AI analyzes and tags each photo — no extra steps needed.",
     portfolioGuideStep4:
-      "To upload 500 photos, just select 20–50 at a time and repeat as many times as needed — there's no upload limit.",
+      "You can upload up to 100 photos per 24 hours. Select 20–50 at a time and repeat until you reach the limit.",
     portfolioConfirmLabel:
       "I confirm these are real photos of work I actually did for customers, not images collected from elsewhere.",
     portfolioConfirmAlert:
@@ -313,7 +313,7 @@ export const translations = {
     instructions:
       "📷 Chụp rõ cả bàn tay dưới ánh sáng tự nhiên, không dùng filter và không che móng.",
     aiExplain:
-      "✨ AI sẽ phân tích tông da, gợi ý màu phù hợp và tạo 3 mẫu nail dành cho bạn.",
+      "✨ AI sẽ phân tích tông da, gợi ý màu phù hợp và gợi ý 4 mẫu nail dành cho bạn.",
     chooseOrTakePhoto: "📸 Chụp hoặc chọn ảnh bàn tay",
     yourHandPhoto: "Ảnh bàn tay của khách",
     analyzing: "✨ AI đang phân tích & tạo mẫu...",
@@ -366,7 +366,7 @@ export const translations = {
     portfolioGuideStep3:
       "Đợi vài giây để AI tự phân tích và gắn tag từng ảnh — không cần làm gì thêm.",
     portfolioGuideStep4:
-      "Muốn tải 500 ảnh, cứ chọn 20–50 ảnh mỗi lần, lặp lại nhiều lần cho đến khi đủ — không giới hạn số lần tải.",
+      "Mỗi tài khoản tải tối đa 100 ảnh trong 24 giờ. Chọn 20–50 ảnh mỗi lần, lặp lại đến khi đủ.",
     portfolioConfirmLabel:
       "Tôi xác nhận đây là ảnh thật tôi đã tự làm cho khách, không phải ảnh sưu tầm từ nguồn khác.",
     portfolioConfirmAlert:

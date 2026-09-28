@@ -146,8 +146,7 @@ function AppointmentsContent() {
       return;
     }
 
-    const newToken =
-      Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const newToken = crypto.randomUUID();
 
     let customerUpdateFailed = false;
     const { data: currentCustomer, error: customerReadError } = await supabase

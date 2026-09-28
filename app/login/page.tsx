@@ -5,6 +5,7 @@ import { useProLanguage } from "../../lib/pro-language";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "../../lib/supabase";
 import { translations } from "../../lib/translations";
 
@@ -117,7 +118,7 @@ export default function LoginPage() {
       <header className="auth-top"><Link href="/" className="auth-brand" aria-label="AL NAIL AI">AL NAIL <span>AI<small aria-hidden="true">♥</small></span></Link><button type="button" className="auth-lang" onClick={() => setLang(lang === "en" ? "vi" : "en")} aria-label={lang === "vi" ? "Đổi ngôn ngữ" : "Change language"}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>{t.switchLang}</button></header>
       <div className="auth-layout">
         <section className="auth-art" aria-label={lang === "vi" ? "Cảm hứng nail dành cho thợ" : "Inspiration for nail artists"}>
-          <div className="auth-main-photo"><img src="/auth-look/artist-signature.png" alt={lang === "vi" ? "Bàn tay với móng French đỏ rượu và đường ánh vàng tinh tế" : "Burgundy French manicure with a delicate gold accent"} fetchPriority="high"/><div className="auth-photo-caption"><span>YOUR ART. YOUR SIGNATURE.</span><p>{lang === "vi" ? "Đẹp từ từng chi tiết." : "Beauty in every detail."}</p></div></div>
+          <div className="auth-main-photo"><Image src="/auth-look/artist-signature.png" alt={lang === "vi" ? "Bàn tay với móng French đỏ rượu và đường ánh vàng tinh tế" : "Burgundy French manicure with a delicate gold accent"} fill sizes="(max-width: 850px) 100vw, 50vw" priority /><div className="auth-photo-caption"><span>YOUR ART. YOUR SIGNATURE.</span><p>{lang === "vi" ? "Đẹp từ từng chi tiết." : "Beauty in every detail."}</p></div></div>
           <div className="auth-art-note"><span aria-hidden="true">✦</span><p>{lang === "vi" ? "Tay nghề của bạn. Cảm hứng của khách." : "Your craft. Their inspiration."}</p></div>
         </section>
         <section className="auth-card" aria-labelledby="auth-title">

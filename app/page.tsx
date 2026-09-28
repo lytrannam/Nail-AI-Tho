@@ -1,5 +1,7 @@
 "use client";
 
+import NextImage from "next/image";
+
 import ProArtwork from "./components/ProArtwork";
 
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -609,7 +611,7 @@ function PageContent() {
             <div className="al-divider" aria-hidden="true"><span/>♥<span/></div>
             <p>{lang === "vi" ? "MÓNG ĐẸP DÀNH CHO MỌI NGƯỜI" : "BEAUTIFUL NAILS FOR EVERYONE"}</p>
           </section>
-          <div className="al-hero"><img src="/al-nail-ai-hero.png" width={1536} height={1024} alt={lang === "vi" ? "Bộ móng hồng đính hoa trắng và nét vàng trên nền lụa hồng" : "Glossy pink manicure with white flowers and fine gold details on blush silk"} fetchPriority="high" /></div>
+          <div className="al-hero"><NextImage src="/al-nail-ai-hero.png" width={1536} height={1024} alt={lang === "vi" ? "Bộ móng hồng đính hoa trắng và nét vàng trên nền lụa hồng" : "Glossy pink manicure with white flowers and fine gold details on blush silk"} priority /></div>
           <section className="al-panel" aria-label={lang === "vi" ? "Bắt đầu trải nghiệm" : "Start your experience"}>
             <h2 className="al-motto">{lang === "vi" ? "Hơn cả một bộ móng." : "More Than Nails."}<br/>{lang === "vi" ? "Một bạn đẹp hơn." : "A More Beautiful You."}</h2>
             <div className="al-underline" aria-hidden="true"/>

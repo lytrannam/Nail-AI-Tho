@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
+const GLOBAL_ANALYZE_MAX_PER_DAY = 60;
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -105,14 +107,29 @@ export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
 
-    // Tối đa 20 lần phân tích ảnh mỗi IP mỗi 24 giờ.
-    const allowed = await checkRateLimit(`analyze:${ip}`, 20, 1440);
+    // Tối đa 10 lần phân tích ảnh mỗi IP mỗi 24 giờ.
+    const allowed = await checkRateLimit(`analyze:${ip}`, 10, 1440);
 
     if (!allowed) {
       return Response.json(
         {
           error:
             "Đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại vào ngày mai hoặc liên hệ tiệm để được hỗ trợ.",
+        },
+        { status: 429 }
+      );
+    }
+
+    const globalAllowed = await checkRateLimit(
+      "global:analyze",
+      GLOBAL_ANALYZE_MAX_PER_DAY,
+      1440
+    );
+    if (!globalAllowed) {
+      return Response.json(
+        {
+          error:
+            "AI đang tạm nghỉ hôm nay / AI is resting for today, please try again tomorrow.",
         },
         { status: 429 }
       );

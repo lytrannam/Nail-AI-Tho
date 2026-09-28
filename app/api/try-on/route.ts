@@ -2,6 +2,8 @@ export const maxDuration = 60;
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
+const GLOBAL_TRYON_MAX_PER_DAY = 40;
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -145,6 +147,21 @@ export async function POST(request: Request) {
         {
           error:
             "Đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại vào ngày mai.",
+        },
+        { status: 429 }
+      );
+    }
+
+    const globalAllowed = await checkRateLimit(
+      "global:tryon",
+      GLOBAL_TRYON_MAX_PER_DAY,
+      1440
+    );
+    if (!globalAllowed) {
+      return Response.json(
+        {
+          error:
+            "AI đang tạm nghỉ hôm nay / AI is resting for today, please try again tomorrow.",
         },
         { status: 429 }
       );

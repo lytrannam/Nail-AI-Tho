@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
+const GLOBAL_SUPPORT_MAX_PER_DAY = 150;
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const supabaseAdmin = createClient(
@@ -120,6 +122,21 @@ export async function POST(request: Request) {
     if (!allowed) {
       return Response.json(
         { error: "Đã hỏi quá nhiều lần, vui lòng thử lại sau." },
+        { status: 429 }
+      );
+    }
+
+    const globalAllowed = await checkRateLimit(
+      "global:support",
+      GLOBAL_SUPPORT_MAX_PER_DAY,
+      1440
+    );
+    if (!globalAllowed) {
+      return Response.json(
+        {
+          error:
+            "AI đang tạm nghỉ hôm nay / AI is resting for today, please try again tomorrow.",
+        },
         { status: 429 }
       );
     }

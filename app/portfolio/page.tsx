@@ -110,6 +110,14 @@ export default function PortfolioPage() {
 
     let successCount = 0;
 
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      alert("Vui lòng đăng nhập lại để tải ảnh.");
+      setUploading(false);
+      return;
+    }
+
     for (const file of Array.from(files)) {
       try {
         const base64 = await new Promise<string>((resolve, reject) => {
@@ -124,7 +132,10 @@ export default function PortfolioPage() {
 
         const res = await fetch("/api/portfolio-tag", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({ imageUrl }),
         });
 

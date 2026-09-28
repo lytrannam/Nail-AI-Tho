@@ -60,20 +60,48 @@ async function checkRateLimit(
   return true;
 }
 
-function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return "unknown";
+function isAllowedPortfolioImageUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  return (
+    parsed.protocol === "https:" &&
+    parsed.hostname === "rxptwdxbxlxcuxjzuvfr.supabase.co" &&
+    parsed.pathname.startsWith("/storage/v1/object/public/nail-designs/")
+  );
 }
 
 export async function POST(request: Request) {
   try {
-    const ip = getClientIp(request);
+    // BUOC 1: Xac minh nguoi goi THUC SU da dang nhap (khong tin client)
+    const authHeader = request.headers.get("authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
 
-    // Toi da 30 lan gan tag/IP/ngay - rong rai hon 2 API kia mot chut vi
-    // day la tinh nang cho THO dung (upload nhieu anh Portfolio lien tuc
-    // la binh thuong), nhung van co gioi han de chan lam dung.
-    const allowed = await checkRateLimit(`portfolio-tag:${ip}`, 30, 1440);
+    if (!token) {
+      return Response.json(
+        { error: "Bạn cần đăng nhập để dùng tính năng này." },
+        { status: 401 }
+      );
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      return Response.json(
+        { error: "Phiên đăng nhập không hợp lệ." },
+        { status: 401 }
+      );
+    }
+
+    // Toi da 100 lan gan tag/tho/ngay.
+    const allowed = await checkRateLimit(`portfolio-tag:${user.id}`, 100, 1440);
 
     if (!allowed) {
       return Response.json(
@@ -87,8 +115,8 @@ export async function POST(request: Request) {
 
     const { imageUrl } = await request.json();
 
-    if (!imageUrl) {
-      return Response.json({ error: "Thiếu ảnh." }, { status: 400 });
+    if (!isAllowedPortfolioImageUrl(imageUrl)) {
+      return Response.json({ error: "Ảnh không hợp lệ." }, { status: 400 });
     }
 
     const response = await openai.responses.create({

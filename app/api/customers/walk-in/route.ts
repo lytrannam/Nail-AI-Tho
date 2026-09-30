@@ -208,52 +208,17 @@ export async function POST(request: Request) {
     windowMinutes: number,
     step: string
   ): Promise<boolean> {
-    const windowMs = windowMinutes * 60 * 1000;
+    const { data, error } = await supabaseAdmin.rpc("check_rate_limit_atomic", {
+      p_key: key,
+      p_max: maxRequests,
+      p_window_minutes: windowMinutes,
+    });
 
-    const { data, error: selectError } = await supabaseAdmin
-      .from("api_rate_limits")
-      .select("count, window_start")
-      .eq("key", key)
-      .maybeSingle();
-
-    if (selectError) {
-      throw new InfraUnavailableError(step, selectError.code);
+    if (error) {
+      throw new InfraUnavailableError(step, error.code);
     }
 
-    const now = Date.now();
-
-    if (!data || now - new Date(data.window_start).getTime() > windowMs) {
-      const { error: upsertError } = await supabaseAdmin
-        .from("api_rate_limits")
-        .upsert({
-          key,
-          count: 1,
-          window_start: new Date().toISOString(),
-        });
-
-      if (upsertError) {
-        throw new InfraUnavailableError(step, upsertError.code);
-      }
-
-      return true;
-    }
-
-    if (data.count >= maxRequests) {
-      return false;
-    }
-
-    const { error: updateError } = await supabaseAdmin
-      .from("api_rate_limits")
-      .update({
-        count: data.count + 1,
-      })
-      .eq("key", key);
-
-    if (updateError) {
-      throw new InfraUnavailableError(step, updateError.code);
-    }
-
-    return true;
+    return data === true;
   }
 
   // Chi duoc tra ve null (dan toi 404 "khong tim thay tho") khi CA HAI truy

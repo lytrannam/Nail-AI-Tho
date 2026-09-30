@@ -1,5 +1,7 @@
 "use client";
 
+import SupportChat from "../components/SupportChat";
+
 import { useRouter } from "next/navigation";
 
 import { useState } from "react";
@@ -380,6 +382,7 @@ export default function PricingPage() {
           </div>
         </div>
       )}
+      <SupportChat lang={lang} />
     </main>
   );
 }

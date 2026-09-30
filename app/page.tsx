@@ -1,5 +1,7 @@
 "use client";
 
+import SupportChat from "./components/SupportChat";
+
 import NextImage from "next/image";
 
 import ProArtwork from "./components/ProArtwork";
@@ -680,6 +682,7 @@ function PageContent() {
           @media(min-width:600px) { .al-panel { padding-left:32px; padding-right:32px; } .al-feature { font-size:16px; min-height:140px; } .al-feature>span:last-child { max-width:140px; } .al-actions button { font-size:18px; min-height:54px; } .al-legal { font-size:13px; } }
           @media(max-width:350px) { .al-header { padding-left:14px; padding-right:14px; gap:6px; } .al-logo { font-size:24px; } .al-language { padding:0 6px; } .al-panel { padding-left:12px; padding-right:12px; } .al-feature { font-size:11px; } .al-actions button { font-size:12px; } }
         `}</style>
+        <SupportChat lang={lang} />
       </main>
     );
   }
@@ -1099,6 +1102,7 @@ function PageContent() {
           )}
         </div>
       )}
+      <SupportChat lang={lang} />
     </main>
   );
 }

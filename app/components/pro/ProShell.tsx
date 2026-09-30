@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { useProLanguage } from "../../../lib/pro-language";
+import SupportChat from "../SupportChat";
 import "./pro.css";
 
 const UserContext = createContext<User | null>(null);
@@ -77,5 +78,6 @@ export default function ProShell({ children }: { children: ReactNode }) {
       <footer className="pro-footer"><span>AL NAIL AI · {vi ? "Tay nghề của bạn. Dấu ấn của bạn." : "Your art. Your signature."}</span><div><Link href="/help">{vi ? "Trợ giúp" : "Help"}</Link><Link href="/">{vi ? "Trang dành cho khách" : "Customer experience"}</Link>{user && <button disabled={signingOut} onClick={async () => { setSigningOut(true); const { error } = await supabase.auth.signOut(); if (error) { setSigningOut(false); window.alert(vi ? "Chưa đăng xuất được. Hãy thử lại." : "Unable to sign out. Please retry."); } }}>{vi ? "Đăng xuất" : "Sign out"}</button>}</div></footer>
     </div>
     <nav className="pro-bottom" aria-label={vi ? "Điều hướng nhanh" : "Quick navigation"}>{proLinks.slice(0, 4).map(([href, vn, en, icon]) => <Link key={href} href={href} aria-current={selected(href) ? "page" : undefined}><ProIcon name={icon}/>{vi ? vn : en}</Link>)}</nav>
+    {user && <SupportChat lang={lang} />}
   </div>;
 }

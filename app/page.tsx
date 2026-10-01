@@ -338,9 +338,17 @@ function PageContent() {
     try {
       setTryOnError("");
 
+      const { data: userData } = await supabase.auth.getUser();
+      const salonParam = searchParams.get("salon");
+      const salonRef = salonParam || userData?.user?.id || null;
+
       const handForRequest = await prepareTryOnImage(image);
       const designForRequest = await prepareTryOnImage(designImage);
-      const payload = JSON.stringify({ image: handForRequest, designImage: designForRequest });
+      const payload = JSON.stringify({
+        image: handForRequest,
+        designImage: designForRequest,
+        salonRef,
+      });
       if (new Blob([payload]).size > 3500000) throw new Error("Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn.");
       const response = await fetch("/api/try-on", {
         method: "POST",

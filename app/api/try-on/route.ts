@@ -62,6 +62,69 @@ function isAllowedExternalImageUrl(raw: string): boolean {
   return true;
 }
 
+const UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+async function resolveTechUserId(salonRef: string): Promise<string | null> {
+  if (UUID_PATTERN.test(salonRef)) {
+    const { data, error } = await supabaseAdmin
+      .from("tech_profiles")
+      .select("user_id")
+      .eq("user_id", salonRef)
+      .maybeSingle();
+
+    if (!error && data?.user_id) {
+      return data.user_id as string;
+    }
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("tech_profiles")
+    .select("user_id")
+    .eq("username", salonRef)
+    .maybeSingle();
+
+  if (error || !data?.user_id) return null;
+
+  return data.user_id as string;
+}
+
+const DEFAULT_ANALYZE_LIMIT = 10;
+const DEFAULT_TRYON_LIMIT = 6;
+
+async function getActiveAiLimits(
+  userId: string
+): Promise<{ analyzeLimit: number; tryonLimit: number }> {
+  const { data, error } = await supabaseAdmin
+    .from("tech_plans")
+    .select("plan, trial_ends_at, pro_expires_at, monthly_analyze_limit, monthly_tryon_limit")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { analyzeLimit: DEFAULT_ANALYZE_LIMIT, tryonLimit: DEFAULT_TRYON_LIMIT };
+  }
+
+  const now = Date.now();
+  let active = true;
+
+  if (data.plan === "trial" && data.trial_ends_at && new Date(data.trial_ends_at).getTime() < now) {
+    active = false;
+  }
+  if (data.plan === "pro" && data.pro_expires_at && new Date(data.pro_expires_at).getTime() < now) {
+    active = false;
+  }
+
+  if (!active) {
+    return { analyzeLimit: DEFAULT_ANALYZE_LIMIT, tryonLimit: DEFAULT_TRYON_LIMIT };
+  }
+
+  return {
+    analyzeLimit: data.monthly_analyze_limit,
+    tryonLimit: data.monthly_tryon_limit,
+  };
+}
+
 async function urlToFile(
   url: string,
   filename: string,
@@ -137,7 +200,7 @@ export async function POST(request: Request) {
     // Nhan du lieu tu CA HAI luong goi:
     // - Trang chu (chon 1 trong cac mau AI de xuat): gui "designImage"
     // - Live Camera (chon mau/kieu co san): gui "colorHex", "colorName", "style"
-    const { image, designImage, colorHex, colorName, style } =
+    const { image, designImage, colorHex, colorName, style, salonRef } =
       await request.json();
 
     if (!image) {
@@ -147,6 +210,36 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       );
+    }
+
+    if (typeof salonRef === "string" && salonRef.trim().length > 0) {
+      const techUserId = await resolveTechUserId(salonRef.trim());
+
+      if (techUserId) {
+        const limits = await getActiveAiLimits(techUserId);
+        const { data: usageAllowed, error: usageError } = await supabaseAdmin.rpc(
+          "check_and_bump_ai_usage",
+          {
+            p_user_id: techUserId,
+            p_kind: "tryon",
+            p_limit: limits.tryonLimit,
+          }
+        );
+
+        if (usageError) {
+          throw new Error("ai_usage_infra_error");
+        }
+
+        if (usageAllowed !== true) {
+          return Response.json(
+            {
+              error:
+                "Thợ đã dùng hết lượt thử mẫu AI miễn phí tháng này. Nâng cấp Pro để tiếp tục. / This tech has used all free AI try-on credits this month. Upgrade to Pro to continue.",
+            },
+            { status: 429 }
+          );
+        }
+      }
     }
 
     const handFile = await urlToFile(image, "hand.jpg", { allowExternal: false });

@@ -70,6 +70,42 @@ async function resolveTechProfileUserId(
 
   return { userId: data.user_id as string, isPublic: data.is_public === true };
 }
+const DEFAULT_ANALYZE_LIMIT = 10;
+const DEFAULT_TRYON_LIMIT = 6;
+
+async function getActiveAiLimits(
+  userId: string
+): Promise<{ analyzeLimit: number; tryonLimit: number }> {
+  const { data, error } = await supabaseAdmin
+    .from("tech_plans")
+    .select("plan, trial_ends_at, pro_expires_at, monthly_analyze_limit, monthly_tryon_limit")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { analyzeLimit: DEFAULT_ANALYZE_LIMIT, tryonLimit: DEFAULT_TRYON_LIMIT };
+  }
+
+  const now = Date.now();
+  let active = true;
+
+  if (data.plan === "trial" && data.trial_ends_at && new Date(data.trial_ends_at).getTime() < now) {
+    active = false;
+  }
+  if (data.plan === "pro" && data.pro_expires_at && new Date(data.pro_expires_at).getTime() < now) {
+    active = false;
+  }
+
+  if (!active) {
+    return { analyzeLimit: DEFAULT_ANALYZE_LIMIT, tryonLimit: DEFAULT_TRYON_LIMIT };
+  }
+
+  return {
+    analyzeLimit: data.monthly_analyze_limit,
+    tryonLimit: data.monthly_tryon_limit,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
@@ -103,6 +139,38 @@ export async function POST(request: Request) {
     }
 
     const { image, salonRef } = await request.json();
+
+    let techProfile: { userId: string; isPublic: boolean } | null = null;
+
+    if (typeof salonRef === "string" && salonRef.trim().length > 0) {
+      techProfile = await resolveTechProfileUserId(salonRef.trim());
+    }
+
+    if (techProfile?.userId) {
+      const limits = await getActiveAiLimits(techProfile.userId);
+      const { data: usageAllowed, error: usageError } = await supabaseAdmin.rpc(
+        "check_and_bump_ai_usage",
+        {
+          p_user_id: techProfile.userId,
+          p_kind: "analyze",
+          p_limit: limits.analyzeLimit,
+        }
+      );
+
+      if (usageError) {
+        throw new Error("ai_usage_infra_error");
+      }
+
+      if (usageAllowed !== true) {
+        return Response.json(
+          {
+            error:
+              "Thợ đã dùng hết lượt phân tích AI miễn phí tháng này. Nâng cấp Pro để tiếp tục. / This tech has used all free AI analysis credits this month. Upgrade to Pro to continue.",
+          },
+          { status: 429 }
+        );
+      }
+    }
 
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
@@ -172,11 +240,8 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
 
     let realMatches: { image_url: string; style: string | null }[] = [];
 
-    if (typeof salonRef === "string" && salonRef.trim().length > 0) {
-      const profile = await resolveTechProfileUserId(salonRef.trim());
-
-      if (profile?.isPublic === true) {
-        const salonUserId = profile.userId;
+    if (techProfile?.isPublic === true) {
+      const salonUserId = techProfile.userId;
         let portfolioFailed = false;
 
         if (skinToneGroup && undertone) {
@@ -237,7 +302,6 @@ TAGS: skin_tone_group=<số 1-6>; undertone=<warm|cool|neutral>`,
             realMatches = data;
           }
         }
-      }
     }
 
     const aiSlotsNeeded = TOTAL_SLOTS - realMatches.length;

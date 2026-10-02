@@ -6,8 +6,10 @@ import { supabase } from "./supabase";
 export type ProCustomer = { id: number; name: string; created_at: string | null; last_visit: string | null; selected_design: string | null };
 type Appointment = { id: number; customer_id: number; appointments_at: string; service: string | null };
 type Profile = { display_name: string | null; username: string; is_public: boolean; profile_views: number | null };
-type Overview = { customers: ProCustomer[] | null; portfolio: number | null; profile: Profile | null; profileLoaded: boolean; appointments: Appointment[] | null; appointmentsThisMonth: number | null; failed: boolean };
-const empty: Overview = { customers: null, portfolio: null, profile: null, profileLoaded: false, appointments: null, appointmentsThisMonth: null, failed: false };
+type AiPlan = { plan: string; monthly_analyze_limit: number; monthly_tryon_limit: number } | null;
+type AiUsage = { analyze_count: number; tryon_count: number } | null;
+type Overview = { customers: ProCustomer[] | null; portfolio: number | null; profile: Profile | null; profileLoaded: boolean; appointments: Appointment[] | null; appointmentsThisMonth: number | null; aiPlan: AiPlan; aiUsage: AiUsage; failed: boolean };
+const empty: Overview = { customers: null, portfolio: null, profile: null, profileLoaded: false, appointments: null, appointmentsThisMonth: null, aiPlan: null, aiUsage: null, failed: false };
 export async function readProCustomers(userId: string): Promise<ProCustomer[]> {
   const rows: ProCustomer[] = [];
   // Supabase limits a response to 1,000 rows by default. Fetch every page for accurate totals.
@@ -27,6 +29,7 @@ export function useProOverview(userId: string) {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
     async function load() {
       const results = await Promise.allSettled([
         readProCustomers(userId),
@@ -34,9 +37,11 @@ export function useProOverview(userId: string) {
         supabase.from("tech_profiles").select("display_name, username, is_public, profile_views").eq("user_id", userId).maybeSingle(),
         supabase.from("appointments").select("id, customer_id, appointments_at, service").eq("user_id", userId).gte("appointments_at", now.toISOString()).order("appointments_at").limit(5),
         supabase.from("appointments").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("appointments_at", start).lt("appointments_at", end),
+        supabase.from("tech_plans").select("plan, monthly_analyze_limit, monthly_tryon_limit").eq("user_id", userId).maybeSingle(),
+        supabase.from("tech_ai_usage").select("analyze_count, tryon_count").eq("user_id", userId).eq("usage_month", monthStart).maybeSingle(),
       ]);
       if (!active) return;
-      const [customers, portfolio, profile, appointments, count] = results;
+      const [customers, portfolio, profile, appointments, count, aiPlanResult, aiUsageResult] = results;
       setData({
         customers: customers.status === "fulfilled" ? customers.value : null,
         portfolio: portfolio.status === "fulfilled" && !portfolio.value.error ? portfolio.value.count : null,
@@ -44,7 +49,9 @@ export function useProOverview(userId: string) {
         profileLoaded: profile.status === "fulfilled" && !profile.value.error,
         appointments: appointments.status === "fulfilled" && !appointments.value.error ? appointments.value.data : null,
         appointmentsThisMonth: count.status === "fulfilled" && !count.value.error ? count.value.count : null,
-        failed: results.some(r => r.status === "rejected" || (!Array.isArray(r.value) && !!r.value.error)),
+        aiPlan: aiPlanResult.status === "fulfilled" && !aiPlanResult.value.error ? aiPlanResult.value.data : null,
+        aiUsage: aiUsageResult.status === "fulfilled" && !aiUsageResult.value.error ? aiUsageResult.value.data : null,
+        failed: [customers, portfolio, profile, appointments, count].some(r => r.status === "rejected" || (!Array.isArray(r.value) && !!r.value.error)),
       });
       setLoading(false);
     }
